@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./resources:/app/resources
+      - ./static:/app/static
+    environment:
+      - FLASK_ENV=development
+      - LOCAL_IP=
+      - DEFAULT_M3U_PATH=resources/default.m3u
+      - EPG_XML_PATH=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
+    restart: unless-stopped
+  acestream-http-proxy:
+    image: ghcr.io/martinbjeldbak/acestream-http-proxy
+    container_name: acestream-http-proxy
+    ports:
+      - 6878:6878
