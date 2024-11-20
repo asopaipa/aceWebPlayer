@@ -35,6 +35,12 @@
                         </div>
                     </form>
                 </div>
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" id="testInput" class="form-control" placeholder="Escribe la ID del canal">
+                        <button id="testButton" class="btn btn-secondary">Test</button>
+                    </div>
+                </div>
                 <form method="post" action="{{ url_for('index') }}">
                     <button type="submit" name="default_list" value="true" class="btn btn-secondary mb-3">Cargar lista por defecto</button>
                 </form>
@@ -99,3 +105,5 @@
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
+<!-- Cargar HLS.js -->
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>

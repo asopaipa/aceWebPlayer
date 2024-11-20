@@ -1,7 +1,7 @@
 function loadChannel(contentId) {
     const video = document.getElementById('video');
     const initialMessage = document.getElementById('initial-message');
-    const videoSrc = `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=${contentId}`;
+    const videoSrc = `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=${contentId}&pid=${Math.floor(10000000 + Math.random() * 90000000).toString()}`;
 
     initialMessage.style.display = 'none';
     video.style.display = 'block';
@@ -96,6 +96,18 @@ document.addEventListener('DOMContentLoaded', function() {
             icon.classList.add('bi-moon');
             logo.src = "/static/logo.png";
             localStorage.setItem('theme', 'light');
+        }
+    });
+
+    const testButton = document.getElementById('testButton');
+    const testInput = document.getElementById('testInput');
+
+    testButton.addEventListener('click', function() {
+        const channelId = testInput.value.trim(); // Obtiene el valor del campo de texto y elimina espacios en blanco
+        if (channelId) {
+            loadChannel(channelId); // Llama a la función loadChannel con la ID
+        } else {
+            alert('Por favor, introduce una ID de canal válida.');
         }
     });
 });
