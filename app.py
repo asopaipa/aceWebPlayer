@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
+from getLinks import generar_m3u
 import re
 import os
 import gzip
@@ -199,6 +200,7 @@ def index():
             content = file.read().decode('utf-8')
             channels = parse_m3u(content)
         elif request.form.get('default_list') == 'true':
+            generar_m3u()
             if os.path.exists(DEFAULT_M3U_PATH):
                 with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
                     content = file.read()
