@@ -10,7 +10,7 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 ## Instrucciones de Configuración
 
 1. **Accede al Directorio del Código**  
-   Navega al directorio que contiene el código fuente.
+   Navega al directorio que contiene el código fuente. Si quieres que el servidor se ejecute desde internet, edita el archivo `docker-compose.yml` y descomenta las líneas indicadas.
 
 2. **Construye la Imagen de Docker**  
    ```bash
