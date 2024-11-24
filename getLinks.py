@@ -12,10 +12,35 @@ if response.status_code == 200:
     # Expresión regular para extraer el nombre y el enlace acestream
     matches = re.findall(r'{"name": "(.*?)", "url": "acestream://([a-f0-9]{40})"}', content)
 
-    # Guardar en un archivo .txt
-    with open('output.txt', 'w') as f:
-        for name, acestream_hash in matches:
-            f.write(f"{name}\n{acestream_hash}\n")
-    print("Archivo 'ace_ids.txt' creado con éxito.")
-else:
-    print(f"Error al realizar la solicitud: {response.status_code}")
+    
+    # Cargar el diccionario desde el CSV
+    csv_file = "./resources/dictionary.csv"  # Sustituye por la ruta a tu CSV
+    diccionario = {}
+
+    with open(csv_file, "r") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            canal, canal_epg, imagen, grupo = row  # "canal","canal_epg","imagen","grupo" son las columnas del CSV
+            diccionario[canal] = {"canal_epg": canal_epg, "imagen": imagen, "grupo": grupo}
+
+        # Generar el archivo de salida con el formato especificado
+        output_file = "./resources/output.m3u"
+
+        with open(output_file, "w") as f:
+            for canal, url in matches:
+                if canal in diccionario:
+                    # Extraer valores del diccionario
+                    canal_epg = diccionario[canal]["canal_epg"]
+                    imagen = diccionario[canal]["imagen"]
+                    grupo = diccionario[canal]["grupo"]
+                else:
+                    canal_epg = ""
+                    imagen = ""
+                    grupo = "OTROS"
+        
+                # Escribir en el archivo con el formato deseado
+                f.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
+                f.write(f'acestream://{url}\n')
+        
+        print(f"Archivo generado: {output_file}")
+
