@@ -24,7 +24,7 @@ if response.status_code == 200:
             diccionario[canal] = {"canal_epg": canal_epg, "imagen": imagen, "grupo": grupo}
 
         # Generar el archivo de salida con el formato especificado
-        output_file = "./resources/output.m3u"
+        output_file = "./resources/default.m3u"
 
         with open(output_file, "w") as f:
             for canal, url in matches:
