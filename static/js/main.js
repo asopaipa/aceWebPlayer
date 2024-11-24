@@ -1,4 +1,4 @@
-var PidId=${Math.floor(10000000 + Math.random() * 90000000).toString()};
+var PidId=Math.floor(10000000 + Math.random() * 90000000).toString();
 function loadChannel(contentId) {
     const video = document.getElementById('video');
     const initialMessage = document.getElementById('initial-message');
