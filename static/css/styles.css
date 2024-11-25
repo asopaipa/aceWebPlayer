@@ -186,7 +186,8 @@
 
 #iframe-container {
     display: none;
-    margin-top: 20px;
+    width: 500px;
+    height: 360px;
 }
 iframe {
     width: 100%;
