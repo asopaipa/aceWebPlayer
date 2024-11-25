@@ -36,4 +36,5 @@ decrypted_plaintext = decrypt(ciphertext, key, iv)
 
 print("Texto cifrado:", ciphertext)
 print("iv:", iv)
+print("key:", key)
 print("Texto descifrado:", decrypted_plaintext.decode())
