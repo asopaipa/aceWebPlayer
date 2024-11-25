@@ -11,7 +11,7 @@ def generar_m3u():
     key = b'h\x03\xf5\x0er\xa7\xf7\x8b\xfd\xbaa\x08\r,\x02\x08\x82\n\xcdJ^\xef\xed\xb7\xa88\xca\xcd0\xed\x98l'
     
     # Realizar la solicitud HTTP
-    response = requests.get(decrypt(url, iv, key))
+    response = requests.get(decrypt(url, key, iv))
     if response.status_code == 200:
         content = response.text
     
