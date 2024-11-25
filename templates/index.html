@@ -103,7 +103,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <button class="btn btn-primary" onclick="toggleIframe()" id="btn_agenda">Agenda deportiva</button>
+    <div id="iframe-container">
+        <iframe id="ftv_iframe" name="ftv_iframe" src="https://widgets.futbolenlatv.com/partidos/agenda?color=000&culture=es-ES" width="500" height="360" frameborder="0" scrolling="auto" style="margin-bottom: 10px"></iframe>
+    </div>
 </body>
 </html>
 <!-- Cargar HLS.js -->
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        function toggleIframe() {
+            const iframeContainer = document.getElementById('iframe-container');
+            const button = document.getElementById('btn_agenda');
+            if (iframeContainer.style.display === 'none' || iframeContainer.style.display === '') {
+                iframeContainer.style.display = 'block';
+                button.textContent = 'Ocultar';
+            } else {
+                iframeContainer.style.display = 'none';
+                button.textContent = 'Agenda deportiva';
+            }
+        }
+    </script>
