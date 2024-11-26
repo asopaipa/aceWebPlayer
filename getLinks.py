@@ -1,14 +1,16 @@
 from cryptoLink import decrypt
 import re
+import random
 import requests
 import csv
 
-def generar_m3u():
+def generar_m3u(miHost):
     
     # URL de la que quieres obtener los datos
     url = b'\xb6L\x18\xae#^+\xad@\x02\t\xbf\x8d\xa9V\x8a\x021\xa3\xda>c\xde\x12\xe8::\xbc\xb4\xd2x'
     iv = b'[\xb0E\x9a-\x98.\xd6\xe9>-\x1a$4`}'
     key = b'h\x03\xf5\x0er\xa7\xf7\x8b\xfd\xbaa\x08\r,\x02\x08\x82\n\xcdJ^\xef\xed\xb7\xa88\xca\xcd0\xed\x98l'
+    numero_aleatorio = random.randint(1, 10000)
     
     # Realizar la solicitud HTTP
     response = requests.get(decrypt(url, key, iv))
@@ -31,8 +33,9 @@ def generar_m3u():
     
             # Generar el archivo de salida con el formato especificado
             output_file = "resources/default.m3u"
+            output_file_remote = "resources/default_remote.m3u"
     
-            with open(output_file, "w") as f:
+            with open(output_file, "w") as f, open(output_file_remote, "w") as f1:
                 for canal, url in matches:
                     if canal in diccionario:
                         # Extraer valores del diccionario
@@ -47,6 +50,9 @@ def generar_m3u():
                     # Escribir en el archivo con el formato deseado
                     f.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
                     f.write(f'acestream://{url}\n')
+
+                    f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
+                    f1.write(f'http://{miHost}:6878/ace/manifest.m3u8?id={url}&pid={numero_aleatorio}\n')
             
             print(f"Archivo generado: {output_file}")
 
