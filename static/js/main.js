@@ -11,8 +11,8 @@ function loadChannel(contentId) {
 
     // Selección de los botones
     const copyAce = document.getElementById('copy_ace');
-    const popupAce = document.getElementById('popup-ace');
-    const copyRemote = document.getElementById('copy-remote');
+    const popupAce = document.getElementById('popup_ace');
+    const copyRemote = document.getElementById('copy_remote');
     
     // Función para copiar texto al portapapeles
     copyAce.addEventListener('click', () => {
