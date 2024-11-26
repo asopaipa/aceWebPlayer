@@ -1,11 +1,13 @@
 var PidId=Math.floor(10000000 + Math.random() * 90000000).toString();
 function loadChannel(contentId) {
     const video = document.getElementById('video');
+    const videoDiv = document.getElementById('video-div');
     const initialMessage = document.getElementById('initial-message');
     const videoSrc = `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
 
     initialMessage.style.display = 'none';
     video.style.display = 'block';
+    videoDiv.style.display = 'block';
 
     if (Hls.isSupported()) {
         const hls = new Hls();
