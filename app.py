@@ -14,7 +14,6 @@ import time
 app = Flask(__name__)
 
 ACESTREAM_PORT = os.getenv("ACESTREAM_PORT", 6878)
-LOCAL_IP = os.getenv("LOCAL_IP", "0.0.0.0")
 DEFAULT_M3U_PATH = os.getenv("DEFAULT_M3U_PATH", 'resources/default.m3u')
 EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz')
 
@@ -200,7 +199,7 @@ def index():
             content = file.read().decode('utf-8')
             channels = parse_m3u(content)
         elif request.form.get('default_list') == 'true':
-            generar_m3u()
+            generar_m3u(request.host)
             if os.path.exists(DEFAULT_M3U_PATH):
                 with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
                     content = file.read()
