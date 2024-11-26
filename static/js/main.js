@@ -9,6 +9,40 @@ function loadChannel(contentId) {
     video.style.display = 'block';
     videoDiv.style.display = 'block';
 
+    // Selección de los botones
+    const copyAce = document.getElementById('copy_ace');
+    const popupAce = document.getElementById('popup-ace');
+    const copyRemote = document.getElementById('copy-remote');
+    
+    // Función para copiar texto al portapapeles
+    copyAce.addEventListener('click', () => {
+        const textToCopy = `${contentId}`;
+        navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+                alert('Texto copiado al portapapeles: ' + textToCopy);
+            })
+            .catch(err => {
+                console.error('Error al copiar el texto: ', err);
+            });
+    });
+    // Función para copiar texto al portapapeles
+    copyRemote.addEventListener('click', () => {
+        navigator.clipboard.writeText(videoSrc)
+            .then(() => {
+                alert('Texto copiado al portapapeles: ' + textToCopy);
+            })
+            .catch(err => {
+                console.error('Error al copiar el texto: ', err);
+            });
+    });
+    
+    // Función para abrir un popup con una URL
+    popupAce.addEventListener('click', () => {
+        const customProtocolUrl = `acestream://${contentId}`
+        window.open(customProtocolUrl, '_blank'); // '_blank' abrirá en una nueva ventana o pestaña
+    });
+
+
     if (Hls.isSupported()) {
         const hls = new Hls();
         hls.loadSource(videoSrc);
