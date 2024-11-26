@@ -92,7 +92,13 @@
                         <div id="initial-message" class="text-center">
                             <h4 class="text-muted dark-text-muted">Selecciona un canal para comenzar la reproducción</h4>
                         </div>
-                        <video id="video" controls autoplay style="display: none;"></video>
+                        <div id="video-div" style="display: none;">
+                            <video id="video" controls autoplay style="display: none;"></video>
+                            <button type="button" name="copy_ace" value="true" class="btn btn-secondary mb-3" style="margin:20px">Copiar enlace Acestream</button>
+                            <button type="button" name="popup_ace" value="true" class="btn btn-secondary mb-3" style="margin:20px">Abrir con Acestream</button>
+                            <button type="button" name="copy_remote" value="true" class="btn btn-secondary mb-3" style="margin:20px">Copiar enlace remoto</button>
+
+                        </div>
                     </div>
                 </div>
             </div>
