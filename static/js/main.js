@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById("descargar_m3u_remote").addEventListener("click", function () {
-        const url = "/download/default.m3u";
+        const url = "/download/default_remote.m3u";
         const link = document.createElement("a");
         link.href = url;
         link.download = "default_remote.m3u"; // Puedes especificar un nombre aquí si deseas
