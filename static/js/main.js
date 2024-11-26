@@ -10,38 +10,9 @@ function loadChannel(contentId) {
     videoDiv.style.display = 'block';
 
     // Selección de los botones
-    const copyAce = document.getElementById('copy_ace');
-    const popupAce = document.getElementById('popup_ace');
-    const copyRemote = document.getElementById('copy_remote');
-    
-    // Función para copiar texto al portapapeles
-    copyAce.addEventListener('click', () => {
-        const textToCopy = `${contentId}`;
-        navigator.clipboard.writeText(textToCopy)
-            .then(() => {
-                alert('Texto copiado al portapapeles: ' + textToCopy);
-            })
-            .catch(err => {
-                console.error('Error al copiar el texto: ', err);
-            });
-    });
-    // Función para copiar texto al portapapeles
-    copyRemote.addEventListener('click', () => {
-        navigator.clipboard.writeText(videoSrc)
-            .then(() => {
-                alert('Texto copiado al portapapeles: ' + textToCopy);
-            })
-            .catch(err => {
-                console.error('Error al copiar el texto: ', err);
-            });
-    });
-    
-    // Función para abrir un popup con una URL
-    popupAce.addEventListener('click', () => {
-        const customProtocolUrl = `acestream://${contentId}`
-        window.open(customProtocolUrl, '_blank'); // '_blank' abrirá en una nueva ventana o pestaña
-    });
+    const infoEnlaces = document.getElementById('info_enlaces');
 
+    infoEnlaces.innerHTML = `Enlace remoto: <a href="${videoSrc}" target="_blank">${videoSrc}</a><br>Enlace Acestream: <a href="acestream://${contentId}" target="_blank">${contentId}</a>`;
 
     if (Hls.isSupported()) {
         const hls = new Hls();
