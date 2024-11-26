@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from getLinks import generar_m3u
 import re
 import os
@@ -187,6 +187,26 @@ def update_epg_data():
         except Exception as e:
             print(f"Error updating EPG: {e}")
         time.sleep(6 * 60 * 60)  # Update every 6 hours
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    # Directorio donde están los archivos
+    directory = "resources"
+    try:
+        # Descargar el archivo
+    
+        # Lista de nombres permitidos
+        archivos_permitidos = ["default.m3u", "default_remote.m3u"]
+    
+        # Validar si el archivo es permitido
+        if filename not in archivos_permitidos:
+            abort(403, description="Archivo no autorizado para la descarga.")
+        
+        return send_from_directory(directory, filename, as_attachment=True)
+    except FileNotFoundError:
+        return f"El archivo {filename} no existe.", 404
+
+
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
