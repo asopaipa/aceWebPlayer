@@ -1,4 +1,5 @@
 from cryptoLink import decrypt
+from urllib.parse import urlparse
 import re
 import random
 import requests
@@ -51,8 +52,12 @@ def generar_m3u(miHost):
                     f.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
                     f.write(f'acestream://{url}\n')
 
+
+                    parsed_url = urlparse(f"http://{miHost}")  # Se requiere un esquema para urlparse
+                    hostname = parsed_url.hostname
+                    
                     f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
-                    f1.write(f'http://{miHost}:6878/ace/manifest.m3u8?id={url}&pid={numero_aleatorio}\n')
+                    f1.write(f'http://{hostname}:6878/ace/manifest.m3u8?id={url}&pid={numero_aleatorio}\n')
             
             print(f"Archivo generado: {output_file}")
 
