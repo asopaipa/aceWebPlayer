@@ -224,6 +224,13 @@ def index():
                 with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
                     content = file.read()
                     channels = parse_m3u(content)
+    elif request.method == 'GET':
+        if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
+            with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
+                content = file.read()
+                channels = parse_m3u(content)
+    
+        
 
 # Update channels with EPG data
         now = datetime.now(pytz.UTC)
