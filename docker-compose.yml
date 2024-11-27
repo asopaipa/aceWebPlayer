@@ -16,6 +16,7 @@ services:
   acestream-http-proxy:
     image: ghcr.io/martinbjeldbak/acestream-http-proxy
     container_name: acestream-http-proxy
+    restart: unless-stopped
     #Descomentar las siguientes líneas si quieres permitir la ejecución desde internet. En caso contrario, solo funcionará en tu red local 
     #environment:
     #  - ALLOW_REMOTE_ACCESS=yes
