@@ -44,6 +44,7 @@
                 <form method="post" action="{{ url_for('index') }}">
                     <button type="submit" name="default_list" value="true" class="btn btn-secondary mb-3">Cargar lista por defecto</button>
                 </form>
+                <input type="text" id="searchInput" placeholder="Buscar canal...">
                 <div class="channels-container">
                     <div class="accordion" id="channelsAccordion">
                         {% for group in groups %}

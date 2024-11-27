@@ -49,6 +49,41 @@ function applyTheme() {
     }
 }
 
+function filterChannels() {
+    // Obtener el valor del campo de búsqueda
+    var input = document.getElementById('searchInput');
+    var filter = input.value.toLowerCase();
+    var channelsContainer = document.querySelector('.channels-container');
+    var accordionItems = channelsContainer.getElementsByClassName('accordion-item');
+
+    // Iterar sobre todos los elementos de acordeón
+    for (var i = 0; i < accordionItems.length; i++) {
+        var accordionItem = accordionItems[i];
+        var channelItems = accordionItem.getElementsByClassName('channel-item');
+        var hasVisibleChannel = false;
+
+        // Iterar sobre todos los canales dentro del acordeón
+        for (var j = 0; j < channelItems.length; j++) {
+            var channelName = channelItems[j].getElementsByClassName('channel-name')[0];
+            if (channelName) {
+                var textValue = channelName.textContent || channelName.innerText;
+                if (textValue.toLowerCase().indexOf(filter) > -1) {
+                    channelItems[j].style.display = "";
+                    hasVisibleChannel = true;
+                } else {
+                    channelItems[j].style.display = "none";
+                }
+            }
+        }
+
+        // Mostrar u ocultar el acordeón basado en si tiene canales visibles
+        if (hasVisibleChannel) {
+            accordionItem.style.display = "";
+        } else {
+            accordionItem.style.display = "none";
+        }
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     // Apply theme
@@ -135,4 +170,18 @@ document.addEventListener('DOMContentLoaded', function() {
         link.download = "default_remote.m3u"; // Puedes especificar un nombre aquí si deseas
         link.click();
     });
+
+    // Mostrar el campo de búsqueda solo si hay elementos accordion-item
+    const channelsAccordion = document.getElementById('channelsAccordion');
+    const channelsSection = document.getElementById('channelsSection');
+    const accordionItems = channelsAccordion.getElementsByClassName('accordion-item');
+
+    if (accordionItems.length > 0) {
+        document.getElementById('searchInput').style.display = 'block';
+    } else {
+        document.getElementById('searchInput').style.display = 'none';
+    }
+
+    // Añadir evento de búsqueda
+    document.getElementById('searchInput').addEventListener('keyup', filterChannels);
 });
