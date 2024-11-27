@@ -230,9 +230,7 @@ def index():
                 content = file.read()
                 channels = parse_m3u(content)
     
-        
-
-# Update channels with EPG data
+    if channels:  # Verifica si 'channels' no está vacío
         now = datetime.now(pytz.UTC)
         local_tz = pytz.timezone('Europe/Madrid')  # Change this to your timezone
         
