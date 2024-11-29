@@ -5,6 +5,37 @@ import random
 import requests
 import csv
 
+def generar_m3u_remoto(miHost):
+
+    # Expresión regular para encontrar hashes de 40 caracteres (acestream)
+    hash_pattern = re.compile(r'[a-fA-F0-9]{40}')
+
+    input_file_path = "resources/default.m3u"
+    output_file_path = "resources/default_remote.m3u"
+    numero_aleatorio = random.randint(1, 10000)
+
+    with open(input_file_path, 'r', encoding='utf-8') as infile, \
+         open(output_file_path, 'w', encoding='utf-8') as outfile:
+        
+        for line in infile:
+            line = line.strip()
+            if line.startswith("#"):
+                # Copiar las líneas de metadatos (comentarios) sin cambios
+                outfile.write(line + "\n")
+            else:
+                # Buscar un hash en la línea
+                match = hash_pattern.search(line)
+                if match:
+                    # Reemplazar el enlace con el formato nuevo
+                    hash_value = match.group()
+                    parsed_url = urlparse(f"http://{miHost}")  # Se requiere un esquema para urlparse
+                    hostname = parsed_url.hostname
+                    new_url = f"http://{hostname}:6878/ace/manifest.m3u8?id={hash_value}&pid={numero_aleatorio}"                    
+                    outfile.write(new_url + "\n")
+                else:
+                    # Si no hay hash, dejar la línea sin cambios
+                    outfile.write(line + "\n")
+
 def generar_m3u(miHost):
     
     # URL de la que quieres obtener los datos
