@@ -65,14 +65,25 @@ function filterChannels() {
         // Iterar sobre todos los canales dentro del acordeón
         for (var j = 0; j < channelItems.length; j++) {
             var channelName = channelItems[j].getElementsByClassName('channel-name')[0];
+            var currentProgram = channelItems[j].getElementsByClassName('current-program')[0];
+            var nextProgram = channelItems[j].getElementsByClassName('next-program')[0];
+            
+            var textValue = '';
             if (channelName) {
-                var textValue = channelName.textContent || channelName.innerText;
-                if (textValue.toLowerCase().indexOf(filter) > -1) {
-                    channelItems[j].style.display = "";
-                    hasVisibleChannel = true;
-                } else {
-                    channelItems[j].style.display = "none";
-                }
+                textValue += channelName.textContent || channelName.innerText;
+            }
+            if (currentProgram) {
+                textValue += ' ' + (currentProgram.textContent || currentProgram.innerText);
+            }
+            if (nextProgram) {
+                textValue += ' ' + (nextProgram.textContent || nextProgram.innerText);
+            }
+
+            if (textValue.toLowerCase().indexOf(filter) > -1) {
+                channelItems[j].style.display = "";
+                hasVisibleChannel = true;
+            } else {
+                channelItems[j].style.display = "none";
             }
         }
 
