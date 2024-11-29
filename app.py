@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
-from getLinks import generar_m3u
+from getLinks import generar_m3u, generar_m3u_remoto
 import re
 import os
 import gzip
@@ -218,7 +218,8 @@ def index():
             file = request.files['m3u_file']
             content = file.read().decode('utf-8')
             with open(DEFAULT_M3U_PATH, 'w', encoding='utf-8') as f:
-                f.write(content)  # Guardar el contenido del archivo      
+                f.write(content)  # Guardar el contenido del archivo    
+            generar_m3u_remoto(request.host)
         elif request.form.get('default_list') == 'true':
             generar_m3u(request.host)
          
