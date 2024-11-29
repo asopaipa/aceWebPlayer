@@ -23,4 +23,4 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 
 ## Solución de Problemas
 
-- Si cualquier comando que comience con `docker compose` da un error, intenta reemplazar `docker compose` con `docker-compose`.
+- Si cualquier comando que comience con `docker compose` da un error, intenta reemplazar `docker compose` con `docker-compose`. Por ejemplo: http://IP:5001
