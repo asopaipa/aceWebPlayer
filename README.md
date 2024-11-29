@@ -21,6 +21,4 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 3. **Accede**  
    Accede con un navegador por el puerto que hayas indicado. La primera vez se recomienda cargar la lista por defecto. Por ejemplo: http://IP:5001
 
-## Solución de Problemas
 
-- Si cualquier comando que comience con `docker compose` da un error, intenta reemplazar `docker compose` con `docker-compose`. 
