@@ -217,18 +217,15 @@ def index():
         if 'm3u_file' in request.files:
             file = request.files['m3u_file']
             content = file.read().decode('utf-8')
-            channels = parse_m3u(content)
+            with open(DEFAULT_M3U_PATH, 'w', encoding='utf-8') as f:
+                f.write(content)  # Guardar el contenido del archivo      
         elif request.form.get('default_list') == 'true':
             generar_m3u(request.host)
-            if os.path.exists(DEFAULT_M3U_PATH):
-                with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
-                    content = file.read()
-                    channels = parse_m3u(content)
-    elif request.method == 'GET':
-        if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
-            with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
-                content = file.read()
-                channels = parse_m3u(content)
+         
+    if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
+        with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
+            content = file.read()
+            channels = parse_m3u(content)
     
     if channels:  # Verifica si 'channels' no está vacío
         now = datetime.now(pytz.UTC)
