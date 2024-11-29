@@ -195,3 +195,10 @@ iframe {
     border: none;
     border-radius: 5px;
 }
+
+input#testInput::placeholder {
+    color: rgba(154, 148, 148, 0.75) !important;
+  }
+input#searchInput::placeholder {
+    color: rgba(154, 148, 148, 0.75) !important;
+  }
