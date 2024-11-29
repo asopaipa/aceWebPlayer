@@ -38,13 +38,13 @@
                 <div class="mb-3">
                     <div class="input-group">
                         <input type="text" id="testInput" class="form-control" placeholder="Escribe la ID del canal">
-                        <button id="testButton" class="btn btn-secondary">Test</button>
+                        <button id="testButton" class="btn btn-secondary">Stream</button>
                     </div>
                 </div>
                 <form method="post" action="{{ url_for('index') }}">
                     <button type="submit" name="default_list" value="true" class="btn btn-secondary mb-3">Cargar lista por defecto</button>
                 </form>
-                <input type="text" id="searchInput" placeholder="Buscar canal...">
+                <input type="text" id="searchInput" class="form-control" placeholder="Buscar canal o evento...">
                 <div class="channels-container">
                     <div class="accordion" id="channelsAccordion">
                         {% for group in groups %}
