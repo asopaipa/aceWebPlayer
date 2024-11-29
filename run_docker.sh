@@ -1,5 +1,19 @@
 #!/bin/bash
 
+
+DOCKER_COMPOSE_CMD=""
+
+# Verificar si docker compose está disponible
+if docker compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker compose"
+elif docker-compose version >/dev/null 2>&1; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+else
+    echo "Ni 'docker compose' ni 'docker-compose' están instalados."
+    exit 1
+fi
+
+
 # Pedir el puerto al usuario
 read -p "¿En qué puerto quieres que se publique la web? (5001) " PORT
 
@@ -27,5 +41,5 @@ fi
 
 docker build -t acestream-player .
 
-# Levantar el contenedor con docker-compose
-docker-compose up -d
+# Levantar el contenedor
+$DOCKER_COMPOSE_CMD up -d
