@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Pedir el puerto al usuario
-read -p "¿Qué puerto quieres usar? 80 sería una buena elección: " PORT
+read -p "¿En qué puerto quieres que se publique la web? (5001) " PORT
 
 # Preguntar si se quiere permitir el acceso remoto
-read -p "¿Quieres permitir el acceso a través de Internet? (sí/no): " ALLOW_REMOTE_ACCESS
+read -p "¿Quieres permitir el acceso a través de Internet? (sí/NO): " ALLOW_REMOTE_ACCESS
 
 # Exportar la variable de entorno para el puerto
 export PORT=$PORT
