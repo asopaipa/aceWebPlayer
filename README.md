@@ -4,8 +4,7 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 
 ## Prerrequisitos
 
-- Docker instalado en tu sistema
-- Docker Compose instalado en tu sistema
+- Docker y Docker Compose instalados en tu sistema
 
 ## Instrucciones de Configuración
 
