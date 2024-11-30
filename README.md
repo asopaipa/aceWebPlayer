@@ -13,13 +13,14 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
    Navega al directorio que contiene el código fuente. 
 
 2. **Construye la Imagen de Docker**
+   
    En Linux:
    ```bash
    chmod +x run_docker.sh
    ./run_docker.sh
    ```
    
-   En Windows, usando PowerShell:
+   En Windows usando PowerShell:
    ```bash
    run_docker.ps1
    ```
