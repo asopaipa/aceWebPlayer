@@ -25,6 +25,7 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
    ```
    
 4. **Accede**  
-   Accede con un navegador por el puerto que hayas indicado. La primera vez se recomienda cargar la lista por defecto. Por ejemplo: http://IP:5001
+   Accede con un navegador por el puerto que hayas indicado, por ejemplo: http://IP:5001
+   La primera vez se recomienda cargar la lista por defecto. 
 
 
