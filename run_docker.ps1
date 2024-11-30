@@ -12,26 +12,26 @@ catch {
         $DOCKER_COMPOSE_CMD = "docker-compose"
     }
     catch {
-        Write-Host "Neither 'docker compose' nor 'docker-compose' are installed."
+        Write-Host "Ni 'docker compose' ni 'docker-compose' están instalados."
         exit 1
     }
 }
 
 # Ask for the port
-$PORT = Read-Host "What port do you want to publish the web on? (5001)"
+$PORT = Read-Host "¿En qué puerto quieres que se publique la web? (5001)"
 if ([string]::IsNullOrEmpty($PORT)) {
     $PORT = "5001"
 }
 
 # Ask about remote access
-$ALLOW_REMOTE_ACCESS = Read-Host "Do you want to allow access through the Internet? (yes/NO)"
+$ALLOW_REMOTE_ACCESS = Read-Host "¿Quieres permitir el acceso a través de Internet? (sí/NO) "
 
 # Set environment variable for the port
 $env:PORT = $PORT
 
 # Update docker-compose.yml based on remote access choice
 if ($ALLOW_REMOTE_ACCESS.ToLower() -eq "yes" -or $ALLOW_REMOTE_ACCESS.ToLower() -eq "y") {
-    Write-Host "Configuring remote access..."
+    Write-Host "Configurando acceso remoto..."
     
     # Read the content of docker-compose.yml
     $content = Get-Content "docker-compose.yml" -Raw
@@ -44,7 +44,7 @@ if ($ALLOW_REMOTE_ACCESS.ToLower() -eq "yes" -or $ALLOW_REMOTE_ACCESS.ToLower() 
     $content | Set-Content "docker-compose.yml"
 }
 else {
-    Write-Host "Remote access not enabled."
+    Write-Host "No se habilita el acceso remoto."
 }
 
 # Build the Docker image
