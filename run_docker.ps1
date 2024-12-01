@@ -25,7 +25,7 @@ if ([string]::IsNullOrEmpty($PORT)) {
 
 $PORTACE = Read-Host "¿En qué puerto quieres que se publique el Acestream? (6878) "
 if ([string]::IsNullOrEmpty($PORTACE)) {
-    $PORT = "6878"
+    $PORTACE = "6878"
 }
 
 # Ask about remote access
