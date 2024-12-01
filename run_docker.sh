@@ -39,9 +39,9 @@ else
   echo "No se habilita el acceso remoto."
 fi
 
-if [ -n "$PUERTOACE" ]; then
-    sed -i "s/6878/$PUERTOACE/g" ./static/js/main.js
-    sed -i "s/6878/$PUERTOACE/g" getLinks.py
+if [ -n "$PORTACE" ]; then
+    sed -i "s/6878/$PORTACE/g" ./static/js/main.js
+    sed -i "s/6878/$PORTACE/g" getLinks.py
 fi
 
 
