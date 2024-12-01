@@ -13,7 +13,6 @@ import time
 
 app = Flask(__name__)
 
-ACESTREAM_PORT = os.getenv("ACESTREAM_PORT", 6878)
 DEFAULT_M3U_PATH = os.getenv("DEFAULT_M3U_PATH", 'resources/default.m3u')
 EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz')
 
