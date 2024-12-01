@@ -20,8 +20,6 @@ RUN mkdir -p resources
 EXPOSE 5000
 
 # Load environment variables from .env file
-ENV ACESTREAM_PORT=${ACESTREAM_PORT}
-ENV LOCAL_IP=${LOCAL_IP}
 ENV DEFAULT_M3U_PATH=${DEFAULT_M3U_PATH}
 ENV EPG_XML_PATH=${EPG_XML_PATH}
 
