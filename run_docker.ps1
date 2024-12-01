@@ -18,9 +18,14 @@ catch {
 }
 
 # Ask for the port
-$PORT = Read-Host "¿En qué puerto quieres que se publique la web? (5001)"
+$PORT = Read-Host "¿En qué puerto quieres que se publique la web? (5001) "
 if ([string]::IsNullOrEmpty($PORT)) {
     $PORT = "5001"
+}
+
+$PORTACE = Read-Host "¿En qué puerto quieres que se publique el Acestream? (6878) "
+if ([string]::IsNullOrEmpty($PORTACE)) {
+    $PORT = "6878"
 }
 
 # Ask about remote access
@@ -28,9 +33,10 @@ $ALLOW_REMOTE_ACCESS = Read-Host "¿Quieres permitir el acceso a través de Inte
 
 # Set environment variable for the port
 $env:PORT = $PORT
+$env:PORTACE = $PORTACE
 
 # Update docker-compose.yml based on remote access choice
-if ($ALLOW_REMOTE_ACCESS.ToLower() -eq "yes" -or $ALLOW_REMOTE_ACCESS.ToLower() -eq "y") {
+if ($ALLOW_REMOTE_ACCESS.ToLower() -eq "si" -or $ALLOW_REMOTE_ACCESS.ToLower() -eq "sí") {
     Write-Host "Configurando acceso remoto..."
     
     # Read the content of docker-compose.yml
