@@ -21,4 +21,4 @@ services:
     #environment:
     #  - ALLOW_REMOTE_ACCESS=yes
     ports:
-      - 6878:6878
+      - "${PORTACE:-6878}:6878"
