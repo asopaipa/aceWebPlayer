@@ -1,6 +1,11 @@
 # Initialize Docker Compose command variable
 $DOCKER_COMPOSE_CMD = ""
 
+
+$archivo_puerto_ace1 = "getLinks.py"
+$archivo_puerto_ace2 = ".\static\js\main.js"
+
+
 # Check if docker compose is available
 try {
     docker compose version | Out-Null
@@ -52,6 +57,19 @@ if ($ALLOW_REMOTE_ACCESS.ToLower() -eq "si" -or $ALLOW_REMOTE_ACCESS.ToLower() -
 else {
     Write-Host "No se habilita el acceso remoto."
 }
+
+if ($PORTACE) {
+
+    $contenido1 = Get-Content $archivo_puerto_ace1
+    $contenidoModificado1 = $contenido1 -replace "6878", $PORTACE
+    $contenidoModificado1 | Set-Content $archivo_puerto_ace1
+
+    $contenido2 = Get-Content $archivo_puerto_ace2
+    $contenidoModificado2 = $contenido2 -replace "6878", $PORTACE
+    $contenidoModificado2 | Set-Content $archivo_puerto_ace2
+
+}
+
 
 # Build the Docker image
 docker build -t acestream-player .
