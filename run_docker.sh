@@ -39,7 +39,10 @@ else
   echo "No se habilita el acceso remoto."
 fi
 
-
+if [ -n "$PUERTOACE" ]; then
+    sed -i "s/6878/$PUERTOACE/g" ./static/js/main.js
+    sed -i "s/6878/$PUERTOACE/g" getLinks.py
+fi
 
 
 docker build -t acestream-player .
