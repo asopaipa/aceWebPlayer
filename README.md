@@ -35,5 +35,3 @@ Si vas a usar Cloudflare, tendrás que usar puertos diferentes a los que están 
 
 ## Capturas
 
-![imatge](https://github.com/user-attachments/assets/9186a875-a44b-47e4-9ae3-935ab7f2d2e7)
-
