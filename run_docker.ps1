@@ -36,6 +36,21 @@ if ([string]::IsNullOrEmpty($PORTACE)) {
 # Ask about remote access
 $ALLOW_REMOTE_ACCESS = Read-Host "¿Quieres permitir el acceso a través de Internet? (sí/NO) "
 
+
+# Preguntar si se quiere usuario
+$USUARIO = Read-Host "Si quieres definir usuario y contraseña, introducte el usuario, si no déjalo en blanco: "
+if ($USUARIO) {
+    $CONTRASENYA = Read-Host "Introduce la contraseña: "
+
+    $content = Get-Content "app.py" -Raw
+    $content = $content -replace 'USERNAME = ""', "USERNAME = `"$USUARIO`""
+    $content = $content -replace 'PASSWORD = ""', "PASSWORD = `"$CONTRASENYA`""
+    
+    # Write the modified content back to the file
+    $content | Set-Content "app.py"
+
+}
+
 # Set environment variable for the port
 $env:PORT = $PORT
 $env:PORTACE = $PORTACE
