@@ -38,7 +38,7 @@ $ALLOW_REMOTE_ACCESS = Read-Host "¿Quieres permitir el acceso a través de Inte
 
 
 # Preguntar si se quiere usuario
-$USUARIO = Read-Host "Si quieres definir usuario y contraseña, introducte el usuario, si no déjalo en blanco: "
+$USUARIO = Read-Host "Si quieres proteger la web con usuario y contraseña, introduce el usuario: "
 if ($USUARIO) {
     $CONTRASENYA = Read-Host "Introduce la contraseña: "
 
