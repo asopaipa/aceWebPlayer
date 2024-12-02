@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response
 from getLinks import generar_m3u, generar_m3u_remoto
 import re
 import os
