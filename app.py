@@ -16,6 +16,29 @@ app = Flask(__name__)
 DEFAULT_M3U_PATH = os.getenv("DEFAULT_M3U_PATH", 'resources/default.m3u')
 EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz')
 
+# Define las credenciales
+USERNAME = "" #si está vacía, no se requerirá autenticación
+PASSWORD = ""  
+
+def requires_auth(f):
+    def decorated(*args, **kwargs):
+        # Si el usuario está vacío, no aplica la autenticación
+        if not USERNAME:
+            return f(*args, **kwargs)
+
+        auth = request.authorization
+        if not auth or auth.username != USERNAME or auth.password != PASSWORD:
+            return Response(
+                "Necesitas autenticarte para acceder.\n",
+                401,
+                {"WWW-Authenticate": 'Basic realm="Login Required"'},
+            )
+        return f(*args, **kwargs)
+    # Hacer el decorador compatible con Flask
+    decorated.__name__ = f.__name__
+    return decorated
+
+
 class Channel:
     def __init__(self, name, id, logo, group, tvg_id):
         self.name = name
@@ -188,6 +211,7 @@ def update_epg_data():
         time.sleep(6 * 60 * 60)  # Update every 6 hours
 
 @app.route('/download/<filename>')
+@requires_auth
 def download_file(filename):
     # Directorio donde están los archivos
     directory = "resources"
@@ -208,6 +232,7 @@ def download_file(filename):
 
 
 @app.route('/', methods=['GET', 'POST'])
+@requires_auth
 def index():
     channels = []
     groups = set()
