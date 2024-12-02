@@ -27,6 +27,7 @@ read -p "Si quieres definir usuario y contraseña, introducte el usuario, si no 
 
 if [ -n "$USUARIO" ]; then
     read -p "Introduce la contraseña: " CONTRASENYA
+fi
 
 # Exportar la variable de entorno para el puerto
 export PORT=$PORT
