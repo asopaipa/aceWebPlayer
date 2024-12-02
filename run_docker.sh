@@ -22,6 +22,12 @@ read -p "¿En qué puerto quieres que se publique el Acestream? (6878) " PORTACE
 # Preguntar si se quiere permitir el acceso remoto
 read -p "¿Quieres permitir el acceso a través de Internet? (sí/NO): " ALLOW_REMOTE_ACCESS
 
+# Preguntar si se quiere permitir el acceso remoto
+read -p "Si quieres definir usuario y contraseña, introducte el usuario, si no déjalo en blanco: " USUARIO
+
+if [ -n "$USUARIO" ]; then
+    read -p "Introduce la contraseña: " CONTRASENYA
+
 # Exportar la variable de entorno para el puerto
 export PORT=$PORT
 export PORTACE=$PORTACE
@@ -42,6 +48,11 @@ fi
 if [ -n "$PORTACE" ]; then
     sed -i "s/6878/$PORTACE/g" ./static/js/main.js
     sed -i "s/6878/$PORTACE/g" getLinks.py
+fi
+
+if [ -n "$USUARIO" ]; then
+    sed -i "s/USERNAME = \"\"/USERNAME = \"$USUARIO\"/g" app.py
+    sed -i "s/PASSWORD = \"\"/PASSWORD = \"$CONTRASENYA\"/g" app.py
 fi
 
 
