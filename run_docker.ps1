@@ -2,7 +2,7 @@
 $DOCKER_COMPOSE_CMD = ""
 
 
-$archivo_puerto_ace1 = "getLinks.py"
+$archivo_puerto_ace1 = ".\getLinks.py"
 $archivo_puerto_ace2 = ".\static\js\main.js"
 
 
