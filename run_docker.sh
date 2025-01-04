@@ -48,7 +48,7 @@ fi
 
 if [ -n "$PORTACE" ]; then
     sed -i "s/6878/$PORTACE/g" ./static/js/main.js
-    sed -i "s/6878/$PORTACE/g" getLinks.py
+    sed -i "s/6878/$PORTACE/g" ./getLinks.py
 fi
 
 if [ -n "$USUARIO" ]; then
