@@ -3,6 +3,7 @@
 }
 
 .channels-container {
+    height: 90vh;
     overflow-y: auto;
 }
 
