@@ -31,7 +31,7 @@
                 <form method="post" action="{{ url_for('index') }}">
                     <button type="submit" name="default_list" value="true" class="btn btn-secondary mb-3">Cargar lista por defecto</button>
                 </form>
-                <input type="text" id="searchInput" class="form-control" placeholder="Buscar canal o evento...">
+                <input type="text" id="searchInput" class="form-control mb-3" placeholder="Buscar canal o evento...">
                 <div class="channels-container">
                     <div class="accordion" id="channelsAccordion">
                         {% for group in groups %}
@@ -70,8 +70,8 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary mb-3">Descargar M3U Acestream</button>
-                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary mb-3">Descargar M3U Remoto (VLC)</button>
+                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3">Descargar M3U Acestream</button>
+                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3">Descargar M3U Remoto (VLC)</button>
                     <div class="mb-3">
                         <form id="upload-form" method="POST" enctype="multipart/form-data">
                             <div class="input-group">
