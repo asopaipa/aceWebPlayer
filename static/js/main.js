@@ -166,6 +166,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+
+    const urlButton = document.getElementById('urlButton');
+    const urlInput = document.getElementById('urlInput');
+
+    urlButton.addEventListener('click', function() {
+        const channelIds = urlInput.value.trim(); // Obtiene el valor del textarea y elimina espacios en blanco inicial y final
+        if (channelIds) {
+            const channels = channelIds.split('\n') // Divide el texto en un array usando el salto de línea
+                                    .map(line => line.trim()) // Elimina espacios en blanco de cada línea
+                                    .filter(line => line); // Filtra líneas vacías
+    
+            if (channels.length > 0) {
+                channels.forEach(channelId => loadChannel(channelId)); // Procesa cada valor llamando a `loadChannel`
+            } else {
+                alert('Por favor, introduce al menos una URL válida.');
+            }
+        } else {
+            alert('Por favor, introduce al menos una URL válida.');
+        }
+    });
+
+
     document.getElementById("descargar_m3u_ace").addEventListener("click", function () {
         const url = "/download/default.m3u";
         const link = document.createElement("a");
