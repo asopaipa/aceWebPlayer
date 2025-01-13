@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>AceStream Player</title>
@@ -107,32 +107,116 @@
                 </div>
             </div>
         </div>
+
+        <!-- Botón flotante de agenda deportiva -->
+        <button class="btn" id="btn_agenda" onclick="togglePopup()">
+            <i class="bi bi-calendar-event"></i>
+            Agenda deportiva
+        </button>
+
+        <!-- Ventana emergente -->
+        <div id="overlay" onclick="togglePopup()"></div>
+        <div id="popup-window">
+            <div id="popup-header">
+                <i class="bi bi-calendar-event me-2"></i>
+                Agenda Deportiva
+                <button id="close-popup" onclick="togglePopup()">×</button>
+            </div>
+            <iframe id="agenda-iframe" src="https://widgets.futbolenlatv.com/partidos/agenda?color=000&culture=es-ES" sandbox="allow-scripts" scrolling="auto"></iframe>
+        </div>
+
+        
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <div class="container-fluid">
-        <button class="btn btn-secondary mb-3" onclick="toggleIframe()" id="btn_agenda">Agenda deportiva</button>
-        <div id="iframe-container">
-            <iframe id="ftv_iframe" name="ftv_iframe" sandbox="allow-scripts" src="https://widgets.futbolenlatv.com/partidos/agenda?color=000&culture=es-ES" width="500" height="360" frameborder="0" scrolling="auto" style="margin-bottom: 10px"></iframe>
-        </div>
-    </div>
-</body>
-</html>
-<!-- Cargar HLS.js -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script>
-        function toggleIframe() {
-            const iframeContainer = document.getElementById('iframe-container');
+      <script>
+        // Función para abrir/cerrar la ventana emergente
+        function togglePopup() {
+            const popup = document.getElementById('popup-window');
+            const overlay = document.getElementById('overlay');
             const button = document.getElementById('btn_agenda');
-            if (iframeContainer.style.display === 'none' || iframeContainer.style.display === '') {
-                iframeContainer.style.display = 'block';
-                button.textContent = 'Ocultar';
+
+            if (popup.style.display === 'none' || popup.style.display === '') {
+                popup.style.display = 'block';
+                overlay.style.display = 'block';
+                button.innerHTML = '<i class="bi bi-calendar-x"></i> Ocultar agenda';
             } else {
-                iframeContainer.style.display = 'none';
-                button.textContent = 'Agenda deportiva';
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+                button.innerHTML = '<i class="bi bi-calendar-event"></i> Agenda deportiva';
             }
         }
+
+        // Funcionalidad mejorada para mover la ventana emergente
+        const popupWindow = document.getElementById('popup-window');
+        const popupHeader = document.getElementById('popup-header');
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        function dragStart(e) {
+            if (e.type === "touchstart") {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+            } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+            }
+
+            if (e.target === popupHeader || e.target.parentElement === popupHeader) {
+                isDragging = true;
+                popupWindow.classList.add('dragging');
+            }
+        }
+
+        function dragEnd() {
+            isDragging = false;
+            popupWindow.classList.remove('dragging');
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                if (e.type === "touchmove") {
+                    currentX = e.touches[0].clientX - initialX;
+                    currentY = e.touches[0].clientY - initialY;
+                } else {
+                    currentX = e.clientX - initialX;
+                    currentY = e.clientY - initialY;
+                }
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, popupWindow);
+            }
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+
+        // Event Listeners para arrastrar
+        popupHeader.addEventListener("touchstart", dragStart, false);
+        popupHeader.addEventListener("mousedown", dragStart, false);
+        document.addEventListener("touchend", dragEnd, false);
+        document.addEventListener("mouseup", dragEnd, false);
+        document.addEventListener("touchmove", drag, false);
+        document.addEventListener("mousemove", drag, false);
+
+        // Prevenir que el iframe interfiera con el arrastre
+        document.getElementById('agenda-iframe').addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+        });
     </script>
+</body>
+
+</html>
