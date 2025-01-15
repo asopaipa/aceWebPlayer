@@ -261,11 +261,14 @@ def index():
             with open(DEFAULT_M3U_PATH, 'w', encoding='utf-8') as f:
                 f.write(content)  # Guardar el contenido del archivo    
             generar_m3u_remoto(request.host)
+            textarea_content = ""
         elif request.form.get('default_list') == 'true':
-            save_to_file(decode_default_url().decode("utf-8"))       
+            direccion=decode_default_url().decode("utf-8")
+            save_to_file(direccion)       
             # Procesar cada línea como una URL
-            urls = [decode_default_url()]
+            urls = [direccion]
             generar_m3u_from_url(request.host, urls)
+            textarea_content = direccion
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()            
