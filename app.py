@@ -247,7 +247,7 @@ def index():
         elif request.form.get('default_list') == 'true':
             generar_m3u(request.host)
         elif request.form.get('submit_url') == 'true':
-            generar_m3u(request.host)
+            generar_m3u_from_url(request.form.get('urlInput'))
          
     if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
         with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
