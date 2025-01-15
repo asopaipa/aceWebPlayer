@@ -20,6 +20,23 @@ EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/e
 USERNAME = "" #si está vacía, no se requerirá autenticación
 PASSWORD = ""  
 
+# Ruta del archivo donde se guardarán los datos persistidos
+DATA_FILE = "urls_directo.txt"
+DATA_FILE = "urls_pelis.txt"
+
+
+def save_to_file(data):
+    """Guarda los datos en el archivo, reemplazando el contenido existente."""
+    with open(DATA_FILE, "w") as file:
+        file.write(data)
+
+def load_from_file():
+    """Carga los datos desde el archivo, si existe. Si no, devuelve una cadena vacía."""
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as file:
+            return file.read()
+    return ""
+    
 def requires_auth(f):
     def decorated(*args, **kwargs):
         # Si el usuario está vacío, no aplica la autenticación
@@ -245,9 +262,21 @@ def index():
                 f.write(content)  # Guardar el contenido del archivo    
             generar_m3u_remoto(request.host)
         elif request.form.get('default_list') == 'true':
-            generar_m3u(request.host)
+            save_to_file(decode_default_url())       
+            # Procesar cada línea como una URL
+            urls = [decode_default_url()]
+            generar_m3u_from_url(urls)
         elif request.form.get('submit_url') == 'true':
-            generar_m3u_from_url(request.form.get('urlInput'))
+            # Obtener los datos enviados desde el formulario
+            textarea_content = request.form.get('urlInput', '').strip()            
+            # Guardar los datos en el archivo
+            save_to_file(textarea_content)       
+            # Procesar cada línea como una URL
+            urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
+            generar_m3u_from_url(urls)
+    else:
+        # Cargar los datos persistidos desde el archivo
+        textarea_content = load_from_file()
          
     if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
         with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
@@ -275,7 +304,7 @@ def index():
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
-    return render_template('index.html', channels=channels, groups=groups)
+    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content)
 
 if __name__ == '__main__':
     # Start EPG updater thread
