@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response
-from getLinks import generar_m3u, generar_m3u_remoto
+from getLinks import generar_m3u, generar_m3u_remoto, generar_m3u_from_url, decode_default_url
 import re
 import os
 import gzip
@@ -265,7 +265,7 @@ def index():
             save_to_file(decode_default_url())       
             # Procesar cada línea como una URL
             urls = [decode_default_url()]
-            generar_m3u_from_url(urls, request.host)
+            generar_m3u_from_url(request.host, urls)
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()            
@@ -273,7 +273,7 @@ def index():
             save_to_file(textarea_content)       
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
-            generar_m3u_from_url(urls, request.host)
+            generar_m3u_from_url(request.host, urls)
     else:
         # Cargar los datos persistidos desde el archivo
         textarea_content = load_from_file()
