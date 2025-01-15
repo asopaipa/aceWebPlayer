@@ -29,7 +29,7 @@
             <div class="col-md-4 sidebar" id="channels-sidebar">
 
                 <form method="post" action="{{ url_for('index') }}">
-                    <button type="submit" name="default_list" value="true" class="btn btn-secondary mb-3">Cargar lista por defecto</button>
+                    <button type="submit" name="default_list" id="default_list" value="true" class="btn btn-secondary mb-3" style="display: none;">Cargar lista por defecto</button>
                 </form>
                 <input type="text" id="searchInput" class="form-control mb-3" placeholder="Buscar canal o evento...">
                 <div class="channels-container">
@@ -90,7 +90,7 @@
                         <form id="upload-form" method="POST">
                             <div class="input-group">
                                 <textarea type="text" id="urlInput" name="urlInput" class="form-control" placeholder="Escribe las URL's de tus fuentes acestream (en construcción)">
-                                <button class="btn btn-primary" type="submit" name="submit_url">Cargar (en construcción)</button>
+                                <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar (en construcción)</button>
                             </div>
                         </form>
                     </div>
@@ -222,6 +222,29 @@
         // Prevenir que el iframe interfiera con el arrastre
         document.getElementById('agenda-iframe').addEventListener('mousedown', function(e) {
             e.stopPropagation();
+        });
+
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const textarea = document.getElementById('urlInput'); // Selecciona el textarea
+            const submitButton = document.getElementById('default_list'); // Selecciona el botón
+
+            // Función para verificar si el textarea está vacío
+            function toggleButton() {
+                if (textarea.value.trim() === '') {
+                    submitButton.style.display = 'inline'; // Muestra el botón
+                } else {
+                    submitButton.style.display = 'none'; // Oculta el botón
+                }
+            }
+
+            // Agrega un evento al textarea para detectar cambios en tiempo real
+            textarea.addEventListener('input', toggleButton);
+
+            // Inicializa el estado del botón al cargar la página
+            toggleButton();
         });
     </script>
 </body>
