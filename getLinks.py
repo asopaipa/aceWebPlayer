@@ -36,6 +36,17 @@ def generar_m3u_remoto(miHost):
                     # Si no hay hash, dejar la línea sin cambios
                     outfile.write(line + "\n")
 
+def decode_default_url():
+    
+    # URL de la que quieres obtener los datos
+    url = b'\xb6L\x18\xae#^+\xad@\x02\t\xbf\x8d\xa9V\x8a\x021\xa3\xda>c\xde\x12\xe8::\xbc\xb4\xd2x'
+    iv = b'[\xb0E\x9a-\x98.\xd6\xe9>-\x1a$4`}'
+    key = b'h\x03\xf5\x0er\xa7\xf7\x8b\xfd\xbaa\x08\r,\x02\x08\x82\n\xcdJ^\xef\xed\xb7\xa88\xca\xcd0\xed\x98l'
+    
+    # Realizar la solicitud HTTP
+    return decrypt(url, key, iv)
+
+
 def generar_m3u(miHost):
     
     # URL de la que quieres obtener los datos
