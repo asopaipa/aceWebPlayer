@@ -265,7 +265,7 @@ def index():
             save_to_file(decode_default_url())       
             # Procesar cada línea como una URL
             urls = [decode_default_url()]
-            generar_m3u_from_url(urls)
+            generar_m3u_from_url(urls, request.host)
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()            
@@ -273,7 +273,7 @@ def index():
             save_to_file(textarea_content)       
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
-            generar_m3u_from_url(urls)
+            generar_m3u_from_url(urls, request.host)
     else:
         # Cargar los datos persistidos desde el archivo
         textarea_content = load_from_file()
