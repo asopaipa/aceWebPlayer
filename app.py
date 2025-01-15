@@ -262,7 +262,7 @@ def index():
                 f.write(content)  # Guardar el contenido del archivo    
             generar_m3u_remoto(request.host)
         elif request.form.get('default_list') == 'true':
-            save_to_file(decode_default_url())       
+            save_to_file(decode_default_url().decode("utf-8"))       
             # Procesar cada línea como una URL
             urls = [decode_default_url()]
             generar_m3u_from_url(request.host, urls)
