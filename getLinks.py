@@ -47,7 +47,7 @@ def decode_default_url():
     return decrypt(url, key, iv)
 
 
-def generar_m3u(miHost, urls):
+def generar_m3u_from_url(miHost, urls):
     # Ruta del diccionario CSV
     csv_file = "resources/dictionary.csv"
     # Archivos de salida
