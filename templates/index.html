@@ -86,14 +86,29 @@
                             <button id="testButton" class="btn btn-secondary">Stream</button>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <form id="upload-form" method="POST">
+                    Directos:
+                    <form id="upload-form" method="POST">
+                        <div class="mb-3">
+                        
                             <div class="input-group">
-                                <textarea type="text" id="urlInput" name="urlInput" class="form-control" placeholder="Escribe las URL's de tus fuentes acestream (en construcción)">{{ textarea_content }}</textarea>
+                                
+                                <textarea type="text" id="urlInput" name="urlInput" class="form-control" placeholder="Escribe las URL's de tus fuentes">{{ textarea_content }}</textarea>
                                 <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar (en construcción)</button>
                             </div>
-                        </form>
-                    </div>
+                        
+                        </div>
+                        Películas:
+                         <div class="mb-3">
+                       
+                            <div class="input-group">
+                                
+                                <textarea type="text" id="urlInput" name="urlInputPelis" class="form-control" placeholder="Escribe las URL's de tus fuentes">{{ textarea_content }}</textarea>
+                            </div>
+                     
+                        </div>
+                        <input class="btn btn-primary" type="checkbox" name="export_strm" value="export_strm">Exportar strm's
+                        <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar (en construcción)</button>
+                    </form>
 
                     
                 </div>
