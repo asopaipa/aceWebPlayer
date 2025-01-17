@@ -2,8 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, send_from_
 from getLinks import generar_m3u, generar_m3u_remoto, generar_m3u_from_url, decode_default_url
 import re
 import os
+import json
 import gzip
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET<
 from datetime import datetime
 import pytz
 import requests
@@ -21,21 +22,47 @@ USERNAME = "" #si está vacía, no se requerirá autenticación
 PASSWORD = ""  
 
 # Ruta del archivo donde se guardarán los datos persistidos
-DATA_FILE = "urls_directo.txt"
-DATA_FILE = "urls_pelis.txt"
+DATA_FILE = "urls.json"
 
+def save_to_file(textarea1, textarea2, checkbox, file_input):
+    """
+    Guarda los datos de los dos textareas y el estado del checkbox en un archivo JSON.
+    
+    :param textarea1: Contenido del primer textarea (cadena).
+    :param textarea2: Contenido del segundo textarea (cadena).
+    :param checkbox: Estado del checkbox (True o False).
+    :param file_input: Ruta del archivo donde se guardarán los datos.
+    """
+    data = {
+        "textarea1": textarea1 if textarea1 is not None else "",
+        "textarea2": textarea2 if textarea2 is not None else "",
+        "checkbox": checkbox
+    }
+    
+    with open(file_input, "w") as file:
+        json.dump(data, file)
 
-def save_to_file(data):
-    """Guarda los datos en el archivo, reemplazando el contenido existente."""
-    with open(DATA_FILE, "w") as file:
-        file.write(data)
+def load_from_file(file_input):
+    """
+    Carga los datos de los dos textareas y el estado del checkbox desde un archivo JSON.
+    
+    :param file_input: Ruta del archivo desde donde se cargarán los datos.
+    :return: Una tupla con el contenido de textarea1, textarea2 y el estado del checkbox.
+    """
+    if os.path.exists(file_input):
+        with open(file_input, "r") as file:
+            try:
+                data = json.load(file)
+                textarea1 = data.get("textarea1", "")
+                textarea2 = data.get("textarea2", "")
+                checkbox = data.get("checkbox", False)
+                return textarea1, textarea2, checkbox
+            except json.JSONDecodeError:
+                # En caso de error al leer el JSON, devolver valores por defecto
+                return "", "", False
+    # Si el archivo no existe, devolver valores por defecto
+    return "", "", False
 
-def load_from_file():
-    """Carga los datos desde el archivo, si existe. Si no, devuelve una cadena vacía."""
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as file:
-            return file.read()
-    return ""
     
 def requires_auth(f):
     def decorated(*args, **kwargs):
@@ -261,25 +288,31 @@ def index():
             with open(DEFAULT_M3U_PATH, 'w', encoding='utf-8') as f:
                 f.write(content)  # Guardar el contenido del archivo    
             generar_m3u_remoto(request.host)
-            textarea_content = ""
+            textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
         elif request.form.get('default_list') == 'true':
-            direccion=decode_default_url().decode("utf-8")
-            save_to_file(direccion)       
+            direccion, direccion_pelis = decode_default_url().decode("utf-8")
+            save_to_file(direccion, direccion_pelis, False, DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [direccion]
+            urls_pelis = [direccion_pelis]
             generar_m3u_from_url(request.host, urls)
             textarea_content = direccion
+            textarea_content_pelis = direccion
+            export_strm = False
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
-            textarea_content = request.form.get('urlInput', '').strip()            
+            textarea_content = request.form.get('urlInput', '').strip()      
+            textarea_content_pelis = request.form.get('urlInputPelis', '').strip()   
+            checkbox = 'export_strm' in request.form
             # Guardar los datos en el archivo
-            save_to_file(textarea_content)       
+            save_to_file(textarea_content,textarea_content_pelis,checkbox,DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
+            urls_pelis = [url.strip() for url in textarea_content_pelis.splitlines() if url.strip()]
             generar_m3u_from_url(request.host, urls)
     else:
         # Cargar los datos persistidos desde el archivo
-        textarea_content = load_from_file()
+        textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
          
     if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
         with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
@@ -307,7 +340,7 @@ def index():
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
-    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content)
+    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm, textarea_content_pelis=textarea_content_pelis)
 
 if __name__ == '__main__':
     # Start EPG updater thread
