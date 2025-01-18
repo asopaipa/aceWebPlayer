@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    const urlButton = document.getElementById('urlButton');
+   /* const urlButton = document.getElementById('urlButton');
     const urlInput = document.getElementById('urlInput');
 
     urlButton.addEventListener('click', function() {
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             alert('Por favor, introduce al menos una URL válida.');
         }
-    });
+    });*/
 
 
     document.getElementById("descargar_m3u_ace").addEventListener("click", function () {
