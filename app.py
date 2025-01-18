@@ -4,7 +4,7 @@ import re
 import os
 import json
 import gzip
-import xml.etree.ElementTree as ET<
+import xml.etree.ElementTree as ET
 from datetime import datetime
 import pytz
 import requests
@@ -14,7 +14,6 @@ import time
 
 app = Flask(__name__)
 
-DEFAULT_M3U_PATH = os.getenv("DEFAULT_M3U_PATH", 'resources/default.m3u')
 EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz')
 
 # Define las credenciales
@@ -263,7 +262,7 @@ def download_file(filename):
         # Descargar el archivo
     
         # Lista de nombres permitidos
-        archivos_permitidos = ["default.m3u", "default_remote.m3u"]
+        archivos_permitidos = ["acestream_directos.m3u", "web_directos.m3u", "acestream_pelis.m3u", "web_pelis.m3u"]
     
         # Validar si el archivo es permitido
         if filename not in archivos_permitidos:
@@ -308,9 +307,10 @@ def index():
     else:
         # Cargar los datos persistidos desde el archivo
         textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
-         
-    if os.path.exists(DEFAULT_M3U_PATH) and os.stat(DEFAULT_M3U_PATH).st_size > 5:
-        with open(DEFAULT_M3U_PATH, 'r', encoding='utf-8') as file:
+
+    
+    if os.path.exists("resources/web_directos.m3u") and os.stat("resources/web_directos.m3u").st_size > 5:
+        with open("resources/web_directos.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
             channels = parse_m3u(content)
     
@@ -332,6 +332,16 @@ def index():
                     channel.next_program_time = next['start'].astimezone(local_tz)
                     print(f"Next program: {channel.next_program} at {channel.next_program_time}")
 
+        groups = {channel.group for channel in channels}
+        groups = sorted(list(groups))
+
+
+    if os.path.exists("resources/web_pelis.m3u") and os.stat("resources/web_pelis.m3u").st_size > 5:
+        with open("resources/web_pelis.m3u", 'r', encoding='utf-8') as file:
+            content = file.read()
+            channels = parse_m3u(content)
+    
+    if channels:  # Verifica si 'channels' no está vacío
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
