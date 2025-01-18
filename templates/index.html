@@ -70,9 +70,7 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Acestream</button>
-                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Remoto (VLC)</button>
-
+                    
                     <br>
                     Directos:
                     <form id="upload-form" method="POST">
@@ -96,6 +94,13 @@
                         <input class="btn btn-primary" type="checkbox" name="export_strm" value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
                         <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar</button>
                     </form>
+                    <br>
+                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Acestream</button>
+                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Remoto (VLC)</button>
+                    <button type="button" id="descargar_m3u_ace_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Acestream</button>
+                    <button type="button" id="descargar_m3u_remote_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Remoto (VLC)</button>
+
+                    
                     <br>
                     <div class="mb-3">
                         <div class="input-group">
