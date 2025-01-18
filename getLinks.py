@@ -83,7 +83,7 @@ def generar_m3u_from_url(miHost, urls, tipo):
     print(f"Archivos generados: {output_file}, {output_file_remote}")
 
 
-def escribir_m3u(f, f1, url, diccionario, miHost, canal=None,tipo=None):
+def escribir_m3u(f, f1, url, diccionario, miHost, canal,tipo):
     """
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
     """
