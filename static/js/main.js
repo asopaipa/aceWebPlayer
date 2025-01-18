@@ -189,18 +189,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     document.getElementById("descargar_m3u_ace").addEventListener("click", function () {
-        const url = "/download/default.m3u";
+        const url = "/download/acestream_directos.m3u";
         const link = document.createElement("a");
         link.href = url;
-        link.download = "default.m3u"; // Puedes especificar un nombre aquí si deseas
+        link.download = "acestream_directos.m3u"; // Puedes especificar un nombre aquí si deseas
         link.click();
     });
 
     document.getElementById("descargar_m3u_remote").addEventListener("click", function () {
-        const url = "/download/default_remote.m3u";
+        const url = "/download/web_directos.m3u";
         const link = document.createElement("a");
         link.href = url;
-        link.download = "default_remote.m3u"; // Puedes especificar un nombre aquí si deseas
+        link.download = "web_directos.m3u"; // Puedes especificar un nombre aquí si deseas
+        link.click();
+    });
+
+
+        document.getElementById("descargar_m3u_ace_pelis").addEventListener("click", function () {
+        const url = "/download/acestream_pelis.m3u";
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "acestream_pelis.m3u"; // Puedes especificar un nombre aquí si deseas
+        link.click();
+    });
+
+    document.getElementById("descargar_m3u_remote_pelis").addEventListener("click", function () {
+        const url = "/download/web_pelis.m3u";
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "web_pelis.m3u"; // Puedes especificar un nombre aquí si deseas
         link.click();
     });
 
