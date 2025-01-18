@@ -282,7 +282,9 @@ def index():
     
     if request.method == 'POST':
         if request.form.get('default_list') == 'true':
-            direccion, direccion_pelis = decode_default_url().decode("utf-8")
+            direccion_bytes, direccion_pelis_bytes = decode_default_url()
+            direccion = direccion_bytes.decode("utf-8")
+            direccion_pelis = direccion_pelis_bytes.decode("utf-8")
             save_to_file(direccion, direccion_pelis, False, DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [direccion]
