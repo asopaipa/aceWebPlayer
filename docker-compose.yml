@@ -10,7 +10,6 @@ services:
       - ./static:/app/static
     environment:
       - FLASK_ENV=development
-      - DEFAULT_M3U_PATH=resources/default.m3u
       - EPG_XML_PATH=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
     restart: unless-stopped
   acestream-http-proxy:
