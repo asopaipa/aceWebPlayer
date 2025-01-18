@@ -1,3 +1,6 @@
+## IMPORTANT: This repository does not host or link to any illegal content
+## IMPORTANTE: Este repositorio ni aloja ni enlaza ningún contenido ilegal
+
 # Configuración de AceStream Player con Docker
 
 Esta guía te ayudará a configurar AceStream Player utilizando Docker.
