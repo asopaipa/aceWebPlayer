@@ -29,7 +29,7 @@
             <div class="col-md-4 sidebar" id="channels-sidebar">
 
                 <form method="post" action="{{ url_for('index') }}">
-                    <button type="submit" name="default_list" id="default_list" value="true" class="btn btn-secondary mb-3" style="display: none;">Cargar lista por defecto</button>
+                    <button type="submit" name="default_list" id="default_list" value="true" class="btn btn-secondary mb-3" style="display: none;">Cargar listas por defecto</button>
                 </form>
                 <input type="text" id="searchInput" class="form-control mb-3" placeholder="Buscar canal o evento...">
                 <div class="channels-container">
@@ -70,23 +70,17 @@
                         </div>
                         {% endfor %}
                     </div>
-                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3">Descargar M3U Acestream</button>
-                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3">Descargar M3U Remoto (VLC)</button>
+                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Acestream</button>
+                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Remoto (VLC)</button>
 
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <input type="text" id="testInput" class="form-control" placeholder="Escribe la ID del canal">
-                            <button id="testButton" class="btn btn-secondary">Stream</button>
-                        </div>
-                    </div>
+                    <br>
                     Directos:
                     <form id="upload-form" method="POST">
                         <div class="mb-3">
                         
                             <div class="input-group">
                                 
-                                <textarea type="text" id="urlInput" name="urlInput" class="form-control" placeholder="Escribe las URL's de tus fuentes">{{ textarea_content }}</textarea>
-                                <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar (en construcción)</button>
+                                <textarea type="text" id="urlInput" name="urlInput" class="form-control" placeholder="Escribe las URL's de tus fuentes m3u">{{ textarea_content }}</textarea>
                             </div>
                         
                         </div>
@@ -95,13 +89,19 @@
                        
                             <div class="input-group">
                                 
-                                <textarea type="text" id="urlInput" name="urlInputPelis" class="form-control" placeholder="Escribe las URL's de tus fuentes">{{ textarea_content_pelis }}</textarea>
+                                <textarea type="text" id="urlInput" name="urlInputPelis" class="form-control" placeholder="Escribe las URL's de tus fuentes m3u">{{ textarea_content_pelis }}</textarea>
                             </div>
                      
                         </div>
                         <input class="btn btn-primary" type="checkbox" name="export_strm" value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
                         <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar (en construcción)</button>
                     </form>
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" id="testInput" class="form-control" placeholder="Escribe la ID del canal">
+                            <button id="testButton" class="btn btn-secondary">Stream</button>
+                        </div>
+                    </div>
 
                     
                 </div>
@@ -238,13 +238,22 @@
         document.addEventListener('DOMContentLoaded', function () {
             const textarea = document.getElementById('urlInput'); // Selecciona el textarea
             const submitButton = document.getElementById('default_list'); // Selecciona el botón
+            const descargar_m3u_remote = document.getElementById('descargar_m3u_remote'); // Selecciona el botón
+            const descargar_m3u_ace = document.getElementById('descargar_m3u_ace'); // Selecciona el botón
+
+            
+            
 
             // Función para verificar si el textarea está vacío
             function toggleButton() {
                 if (textarea.value.trim() === '') {
-                    submitButton.style.display = 'inline'; // Muestra el botón
+                    submitButton.style.display = 'inline';
+                    descargar_m3u_remote.style.display = 'none'; 
+                    descargar_m3u_ace.style.display = 'none';
                 } else {
-                    submitButton.style.display = 'none'; // Oculta el botón
+                    submitButton.style.display = 'none'; 
+                    descargar_m3u_remote.style.display = 'inline';
+                    descargar_m3u_ace.style.display = 'inline'; 
                 }
             }
 
