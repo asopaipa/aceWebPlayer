@@ -298,7 +298,8 @@ def index():
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()      
             textarea_content_pelis = request.form.get('urlInputPelis', '').strip()   
-            checkbox = 'export_strm' in request.form
+            export_strm = False
+            export_strm = 'export_strm' in request.form
             # Guardar los datos en el archivo
             save_to_file(textarea_content,textarea_content_pelis,checkbox,DATA_FILE)       
             # Procesar cada línea como una URL
