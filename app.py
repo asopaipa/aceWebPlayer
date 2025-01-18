@@ -312,8 +312,8 @@ def index():
         textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
 
     
-    if os.path.exists("resources/web_directos.m3u") and os.stat("resources/web_directos.m3u").st_size > 5:
-        with open("resources/web_directos.m3u", 'r', encoding='utf-8') as file:
+    if os.path.exists("resources/acestream_directos.m3u") and os.stat("resources/acestream_directos.m3u").st_size > 5:
+        with open("resources/acestream_directos.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
             channels = parse_m3u(content)
     
@@ -339,10 +339,11 @@ def index():
         groups = sorted(list(groups))
 
 
-    if os.path.exists("resources/web_pelis.m3u") and os.stat("resources/web_pelis.m3u").st_size > 5:
-        with open("resources/web_pelis.m3u", 'r', encoding='utf-8') as file:
+    if os.path.exists("resources/acestream_pelis.m3u") and os.stat("resources/acestream_pelis.m3u").st_size > 5:
+        with open("resources/acestream_pelis.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
-            channels = parse_m3u(content)
+            channels2 = parse_m3u(content)
+            channels.extend(channels2)
     
     if channels:  # Verifica si 'channels' no está vacío
         groups = {channel.group for channel in channels}
