@@ -199,6 +199,12 @@ iframe {
 input#testInput::placeholder {
     color: rgba(154, 148, 148, 0.75) !important;
   }
+textarea#urlInput::placeholder {
+    color: rgba(154, 148, 148, 0.75) !important;
+  }
+textarea#urlInputPelis::placeholder {
+    color: rgba(154, 148, 148, 0.75) !important;
+  }
 input#searchInput::placeholder {
     color: rgba(154, 148, 148, 0.75) !important;
   }
