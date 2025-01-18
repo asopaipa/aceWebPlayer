@@ -21,10 +21,10 @@ def generar_m3u_from_url(miHost, urls, tipo):
     # Ruta del diccionario CSV
     csv_file = "resources/dictionary.csv"
     # Archivos de salida
-    if tipo == "directos"
+    if tipo == "directos":
         output_file = "resources/acestream_directos.m3u"
         output_file_remote = "resources/web_directos.m3u"
-    if tipo == "pelis"
+    if tipo == "pelis":
         output_file = "resources/acestream_pelis.m3u"
         output_file_remote = "resources/web_pelis.m3u"
     
@@ -96,9 +96,9 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal=None,tipo):
     else:
         canal_epg = ""
         imagen = ""
-        if tipo == "directos"
+        if tipo == "directos":
             grupo = "OTROS"
-        if tipo == "pelis"
+        if tipo == "pelis":
             grupo = "PELIS"
 
     # Si no hay nombre del canal, usar la URL como nombre
