@@ -413,7 +413,7 @@ def procesar_peliculas(m3u_peliculas, directorio_salida):
         elif linea.startswith("acestream://") or linea.startswith("http"):
             # Crear el archivo STRM con el enlace
             if pelicula_actual:
-                archivo_strm = os.path.join(pelicula_actual, f"{pelicula_actual} - {calidad}.strm")
+                archivo_strm = os.path.join(pelicula_actual, f"{titulo} - {calidad}.strm")
                 with open(archivo_strm, "w", encoding="utf-8") as f:
                     f.write(linea)
 
