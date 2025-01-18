@@ -301,7 +301,7 @@ def index():
             export_strm = False
             export_strm = 'export_strm' in request.form
             # Guardar los datos en el archivo
-            save_to_file(textarea_content,textarea_content_pelis,checkbox,DATA_FILE)       
+            save_to_file(textarea_content,textarea_content_pelis,export_strm,DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
             urls_pelis = [url.strip() for url in textarea_content_pelis.splitlines() if url.strip()]
