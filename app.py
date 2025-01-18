@@ -311,7 +311,14 @@ def index():
         # Cargar los datos persistidos desde el archivo
         textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
 
-    
+    if export_strm:
+        
+        # Procesar directos y películas
+        procesar_directos("resources/acestream_directos.m3u", "output_strm/acestream")
+        procesar_peliculas("resources/acestream_pelis.m3u", "output_strm/acestream")
+
+        procesar_directos("resources/web_directos.m3u", "output_strm/web")
+        procesar_peliculas("resources/web_pelis.m3u", "output_strm/web")
     if os.path.exists("resources/acestream_directos.m3u") and os.stat("resources/acestream_directos.m3u").st_size > 5:
         with open("resources/acestream_directos.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
@@ -350,6 +357,66 @@ def index():
         groups = sorted(list(groups))
     
     return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm, textarea_content_pelis=textarea_content_pelis)
+
+def procesar_directos(m3u_directos, directorio_salida):
+    """
+    Procesa el archivo M3U de directos y crea archivos .strm en una única carpeta.
+    """
+    carpeta_directos = os.path.join(directorio_salida, "Directos")
+    os.makedirs(carpeta_directos, exist_ok=True)
+
+    with open(m3u_directos, "r", encoding="utf-8") as f:
+        contenido = f.readlines()
+
+    for i, linea in enumerate(contenido):
+        linea = linea.strip()
+        if linea.startswith("#EXTINF"):
+            # Extraer el nombre del canal
+            match = re.search(r',(.+)$', linea)
+            nombre_canal = match.group(1).strip() if match else f"Directo_{i}"
+        elif linea.startswith("acestream://") or linea.startswith("http"):
+            # Crear el archivo STRM con el enlace
+            archivo_strm = os.path.join(carpeta_directos, f"{nombre_canal}.strm")
+            with open(archivo_strm, "w", encoding="utf-8") as f:
+                f.write(linea)
+
+
+def procesar_peliculas(m3u_peliculas, directorio_salida):
+    """
+    Procesa el archivo M3U de películas y crea una estructura de carpetas con subcarpetas y archivos .strm.
+    """
+    carpeta_peliculas = os.path.join(directorio_salida, "Peliculas")
+    os.makedirs(carpeta_peliculas, exist_ok=True)
+
+    with open(m3u_peliculas, "r", encoding="utf-8") as f:
+        contenido = f.readlines()
+
+    pelicula_actual = None
+    for i, linea in enumerate(contenido):
+        linea = linea.strip()
+        if linea.startswith("#EXTINF"):
+            # Extraer el nombre de la película y la calidad
+            match = re.search(r',(.+)$', linea)
+            if match:
+                info = match.group(1).strip()
+                # Separar título y calidad
+                titulo_match = re.match(r'(.+?)\s+\((\d{4})\)\s+(.+)', info)
+                if titulo_match:
+                    titulo = titulo_match.group(1).strip()
+                    calidad = titulo_match.group(3).strip()
+                else:
+                    titulo = info
+                    calidad = "Desconocida"
+                # Crear carpeta para la película
+                pelicula_actual = os.path.join(carpeta_peliculas, titulo)
+                os.makedirs(pelicula_actual, exist_ok=True)
+        elif linea.startswith("acestream://") or linea.startswith("http"):
+            # Crear el archivo STRM con el enlace
+            if pelicula_actual:
+                archivo_strm = os.path.join(pelicula_actual, f"{pelicula_actual} - {calidad}.strm")
+                with open(archivo_strm, "w", encoding="utf-8") as f:
+                    f.write(linea)
+
 
 if __name__ == '__main__':
     # Start EPG updater thread
