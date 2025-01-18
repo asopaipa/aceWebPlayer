@@ -11,6 +11,7 @@ import requests
 import io
 import threading
 import time
+import shutil
 
 app = Flask(__name__)
 
@@ -319,6 +320,12 @@ def index():
 
         procesar_directos("resources/web_directos.m3u", "output_strm/web")
         procesar_peliculas("resources/web_pelis.m3u", "output_strm/web")
+    else:
+        if os.path.exists("output_strm/acestream"):
+            shutil.rmtree("output_strm/acestream")
+
+        if os.path.exists("output_strm/web"):
+            shutil.rmtree("output_strm/web")
     if os.path.exists("resources/acestream_directos.m3u") and os.stat("resources/acestream_directos.m3u").st_size > 5:
         with open("resources/acestream_directos.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
