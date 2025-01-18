@@ -246,6 +246,11 @@
             const submitButton = document.getElementById('default_list'); // Selecciona el botón
             const descargar_m3u_remote = document.getElementById('descargar_m3u_remote'); // Selecciona el botón
             const descargar_m3u_ace = document.getElementById('descargar_m3u_ace'); // Selecciona el botón
+            const descargar_m3u_remote_pelis = document.getElementById('descargar_m3u_remote_pelis'); // Selecciona el botón
+            const descargar_m3u_ace_pelis = document.getElementById('descargar_m3u_ace_pelis'); // Selecciona el botón
+            const searchInput = document.getElementById('searchInput'); // Selecciona el botón
+
+            
 
             
             
@@ -256,10 +261,17 @@
                     submitButton.style.display = 'inline';
                     descargar_m3u_remote.style.display = 'none'; 
                     descargar_m3u_ace.style.display = 'none';
+                    descargar_m3u_remote_pelis.style.display = 'none'; 
+                    descargar_m3u_ace_pelis.style.display = 'none';
+                    searchInput.style.display = 'none';
                 } else {
                     submitButton.style.display = 'none'; 
                     descargar_m3u_remote.style.display = 'inline';
                     descargar_m3u_ace.style.display = 'inline'; 
+                    descargar_m3u_remote_pelis.style.display = 'inline'; 
+                    descargar_m3u_ace_pelis.style.display = 'inline';
+                    searchInput.style.display = 'inline';
+
                 }
             }
 
