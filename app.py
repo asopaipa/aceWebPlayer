@@ -282,22 +282,16 @@ def index():
     groups = set()
     
     if request.method == 'POST':
-        if 'm3u_file' in request.files:
-            file = request.files['m3u_file']
-            content = file.read().decode('utf-8')
-            with open(DEFAULT_M3U_PATH, 'w', encoding='utf-8') as f:
-                f.write(content)  # Guardar el contenido del archivo    
-            generar_m3u_remoto(request.host)
-            textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
-        elif request.form.get('default_list') == 'true':
+        if request.form.get('default_list') == 'true':
             direccion, direccion_pelis = decode_default_url().decode("utf-8")
             save_to_file(direccion, direccion_pelis, False, DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [direccion]
             urls_pelis = [direccion_pelis]
-            generar_m3u_from_url(request.host, urls)
+            generar_m3u_from_url(request.host, urls, "directos")
+            generar_m3u_from_url(request.host, urls_pelis, "pelis")
             textarea_content = direccion
-            textarea_content_pelis = direccion
+            textarea_content_pelis = direccion_pelis
             export_strm = False
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
@@ -309,7 +303,8 @@ def index():
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
             urls_pelis = [url.strip() for url in textarea_content_pelis.splitlines() if url.strip()]
-            generar_m3u_from_url(request.host, urls)
+            generar_m3u_from_url(request.host, urls, "directos")
+            generar_m3u_from_url(request.host, urls_pelis, "pelis")
     else:
         # Cargar los datos persistidos desde el archivo
         textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
