@@ -2,6 +2,10 @@
 
 **IMPORTANTE: Este repositorio ni aloja ni enlaza ningún contenido ilegal**
 
+# ¿Qué es AceStream Player?
+
+Es un reproductor web que te permite cargar listas con acestreams y reproducirlas en el navegador. De esta forma, puedes ver los vídeos en cualquier dispositivo con navegador sin necesidad de tener instalado Acestream en cada uno de ellos. Tiene soporte tanto para películas como para directos e incopora agenda deportiva.
+
 # Configuración de AceStream Player con Docker
 
 Esta guía te ayudará a configurar AceStream Player utilizando Docker.
