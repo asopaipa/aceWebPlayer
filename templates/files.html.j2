@@ -1,9 +1,10 @@
-<!--Template file-->
-<!--templates/files.html.j2-->
+<html>
+<head><title>Index of /</title></head>
+<body>
 <h1>Index of /</h1>
 <hr><pre><a href="{{ url_for('getFiles', reqPath=data['parentFolder']) }}">../</a>
 {% for fileObj in data['files'] %}
-<a href="{{ url_for('getFiles', reqPath=fileObj['relPath']) }}">{{ fileObj['name'] }}</a>           {{fileObj['mTime']}}              {{fileObj['size']}}
-{% endfor %}
-</pre><hr>
+<a href="{{ url_for('getFiles', reqPath=fileObj['relPath']) }}">{{ fileObj['name'] }}</a>           {{fileObj['mTime']}}              {{fileObj['size']}}{% endfor %}
+</pre><hr></body>
+</html>
 
