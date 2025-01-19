@@ -452,8 +452,8 @@ def getIconClassForFilename(fName):
     return fileIconClass
 
 # route handler
-@app.route('/reports/', defaults={'reqPath': ''})
-@app.route('/reports/<path:reqPath>')
+@app.route('/output_strm/', defaults={'reqPath': ''})
+@app.route('/output_strm/<path:reqPath>')
 def getFiles(reqPath):
     # Join the base and the requested path
     # could have done os.path.join, but safe_join ensures that files are not fetched from parent folders of the base folder
