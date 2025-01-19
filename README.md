@@ -35,7 +35,9 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 
 ## Otras consideraciones
 
-Si vas a usar Cloudflare, tendrás que usar puertos diferentes a los que están por defecto. Por ejemplo 8080 para la web y 8880 para Acestream. 
+· Si vas a usar Cloudflare, tendrás que usar puertos diferentes a los que están por defecto. Por ejemplo 8080 para la web y 8880 para Acestream. 
+
+· Los navegadores no reproducen de forma nativa todos los codecs de vídeo. Puedes conectar las listas con Kodi, VLC o tu sistema favorito, mediante la exportación de los M3U's 
 
 ## Capturas
 
