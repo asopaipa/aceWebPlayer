@@ -14,6 +14,7 @@ import time
 import shutil
 from pathlib import Path
 from werkzeug.utils import safe_join
+from operator import itemgetter
 
 
 app = Flask(__name__)
@@ -479,15 +480,21 @@ def getFiles(reqPath):
                 'relPath': os.path.relpath(x.path, FolderPath).replace("\\", "/"),
                 'mTime': getTimeStampString(fileStat.st_mtime),
                 'size': getReadableByteSize(fileStat.st_size)}
-    fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
+
+
+
+
+    
+    #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
+    fileObjs = sorted(
+        [fObjFromScan(x) for x in os.scandir(absPath)],
+        key=itemgetter('name')  # Ordenar por el campo 'name'
+    )
     # get parent directory url
     parentFolderPath = os.path.relpath(
         Path(absPath).parents[0], FolderPath).replace("\\", "/")
     return render_template('files.html.j2', data={'files': fileObjs,
                                                  'parentFolder': parentFolderPath})
-
-
-
 
 
 if __name__ == '__main__':
