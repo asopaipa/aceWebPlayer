@@ -1,6 +1,4 @@
-**IMPORTANT: This repository does not host or link to any illegal content**
-
-**IMPORTANTE: Este repositorio ni aloja ni enlaza ningún contenido ilegal**
+**Este repositorio ni aloja ni enlaza ningún contenido ilegal / This repository does not host or link to any illegal content**
 
 # ¿Qué es AceStream Player?
 
