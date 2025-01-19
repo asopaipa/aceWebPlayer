@@ -436,11 +436,17 @@ FolderPath = r"output_strm"
 
 
 def getReadableByteSize(num, suffix='B') -> str:
+    # Si el número es menor que 1024 (en bytes), devolver el valor entero sin sufijo "B"
+    if abs(num) < 1024.0:
+        return "%d" % num  # No muestra decimales ni sufijo "B"
+    
+    # Para unidades mayores a 1024, aplicamos el formato con sufijos y sin decimales
     for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
+            return "%d%s%s" % (num, unit, suffix)  # No decimales para "K", "M", etc.
         num /= 1024.0
-    return "%.1f%s%s" % (num, 'Y', suffix)
+    
+    return "%d%s%s" % (num, 'Y', suffix)  # Para valores grandes, se omiten decimales
 
 def getTimeStampString(tSec: float) -> str:
     tObj = datetime.fromtimestamp(tSec)
@@ -475,11 +481,15 @@ def getFiles(reqPath):
     def fObjFromScan(x):
         fileStat = x.stat()
         # return file information for rendering
-        return {'name': x.name + "/" if os.path.isdir(x.path) else x.name,
+        if os.path.isdir(x.path):
+            nombre = x.name + "/"
+        else:
+            nombre = x.name
+        return {'name': nombre.ljust(51),
                 'fIcon': "bi bi-folder-fill" if os.path.isdir(x.path) else getIconClassForFilename(x.name),
                 'relPath': os.path.relpath(x.path, FolderPath).replace("\\", "/"),
                 'mTime': getTimeStampString(fileStat.st_mtime),
-                'size': getReadableByteSize(fileStat.st_size)}
+                'size': "       -" if os.path.isdir(x.path) else getReadableByteSize(fileStat.st_size)}
         
     #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
     fileObjs = sorted(
