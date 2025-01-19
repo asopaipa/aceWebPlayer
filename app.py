@@ -480,23 +480,19 @@ def getFiles(reqPath):
                 'relPath': os.path.relpath(x.path, FolderPath).replace("\\", "/"),
                 'mTime': getTimeStampString(fileStat.st_mtime),
                 'size': getReadableByteSize(fileStat.st_size)}
-
-
-
-
-    
+        
     #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
     fileObjs = sorted(
         [fObjFromScan(x) for x in os.scandir(absPath)],
-        key=itemgetter('name')  # Ordenar por el campo 'name'
+        key=itemgetter('name')
     )
     # get parent directory url
     parentFolderPath = os.path.relpath(
         Path(absPath).parents[0], FolderPath).replace("\\", "/")
     return render_template('files.html.j2', data={'files': fileObjs,
                                                  'parentFolder': parentFolderPath})
-
-
+    
+    
 if __name__ == '__main__':
     # Start EPG updater thread
     updater_thread = threading.Thread(target=update_epg_data)
