@@ -6,7 +6,8 @@ Es un reproductor web que te permite cargar listas con acestreams y reproducirla
 
 ## Captura
 
-![imatge](https://github.com/user-attachments/assets/1478f233-a5bd-4c45-a1a5-d083dc6333f8)
+![imatge](https://github.com/user-attachments/assets/c696fadf-049a-4e53-acb8-3255f3c799f7)
+
 
 # Configuración de AceStream Player con Docker
 
