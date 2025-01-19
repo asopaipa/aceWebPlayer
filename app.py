@@ -474,7 +474,7 @@ def getFiles(reqPath):
     def fObjFromScan(x):
         fileStat = x.stat()
         # return file information for rendering
-        return {'name': x.name,
+        return {'name': x.name + "/" if os.path.isdir(x.path) else x.name,
                 'fIcon': "bi bi-folder-fill" if os.path.isdir(x.path) else getIconClassForFilename(x.name),
                 'relPath': os.path.relpath(x.path, FolderPath).replace("\\", "/"),
                 'mTime': getTimeStampString(fileStat.st_mtime),
