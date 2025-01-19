@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, safe_join, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, send_file
 from getLinks import generar_m3u_from_url, decode_default_url
 import re
 import os
@@ -13,6 +13,7 @@ import threading
 import time
 import shutil
 from pathlib import Path
+from werkzeug.utils import safe_join
 
 
 app = Flask(__name__)
