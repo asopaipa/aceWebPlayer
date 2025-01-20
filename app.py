@@ -485,11 +485,13 @@ def getFiles(reqPath):
             nombre = x.name + "/"
         else:
             nombre = x.name
-        return {'name': nombre.ljust(51),
+        return {'name': nombre[:50],
+                'espacios_nombre': "".ljust(51 - len(nombre[:50])),
                 'fIcon': "bi bi-folder-fill" if os.path.isdir(x.path) else getIconClassForFilename(x.name),
-                'relPath': os.path.relpath(x.path, FolderPath).replace("\\", "/"),
+                'relPath': os.path.relpath(x.path).replace("\\", "/") + "/" if os.path.isdir(x.path) else os.path.relpath(x.path).replace("\\", "/"),
                 'mTime': getTimeStampString(fileStat.st_mtime),
-                'size': "       -" if os.path.isdir(x.path) else getReadableByteSize(fileStat.st_size)}
+                'espacios_fecha': "       " if os.path.isdir(x.path) else "".ljust(7 - len(getReadableByteSize(fileStat.st_size)[:6])),
+                'size': "-" if os.path.isdir(x.path) else getReadableByteSize(fileStat.st_size)[:6]}
         
     #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
     fileObjs = sorted(
