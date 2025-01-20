@@ -46,5 +46,5 @@ Esta guía te ayudará a configurar AceStream Player utilizando Docker.
 
 · Los navegadores no reproducen de forma nativa todos los codecs de vídeo. Puedes conectar las listas con Kodi, VLC o tu sistema favorito, mediante la exportación de los M3U's 
 
-· La exportación de los strm publica sin contraseña todos los enlaces en la ruta http://IP:PUERTO/output_strm
+· La exportación de los strm publica sin contraseña todos los enlaces en la ruta http://IP:PUERTO/output_strm/
 
