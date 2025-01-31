@@ -96,6 +96,7 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal,tipo):
         imagen = diccionario[canal]["imagen"]
         grupo = diccionario[canal]["grupo"]
     else:
+        canal = canal.replace("/", " ").replace("\\", " ").replace("-", " ")
         canal_epg = ""
         imagen = ""
         if tipo == "directos":
