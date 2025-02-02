@@ -385,11 +385,13 @@ def procesar_directos(m3u_directos, directorio_salida):
             # Extraer el nombre del canal
             match = re.search(r',(.+)$', linea)
             nombre_canal = match.group(1).strip() if match else f"Directo_{i}"
+            nombre_canal=nombre_canal.replace(" ", "_")
         elif linea.startswith("acestream://") or linea.startswith("http"):
             # Crear el archivo STRM con el enlace
             archivo_strm = os.path.join(carpeta_directos, f"{nombre_canal}.strm")
             with open(archivo_strm, "w", encoding="utf-8") as f:
-                f.write(linea)
+                f.write(f'"{linea}"')
+
 
 
 def procesar_peliculas(m3u_peliculas, directorio_salida):
@@ -414,11 +416,11 @@ def procesar_peliculas(m3u_peliculas, directorio_salida):
                 titulo_match = re.match(r'(.+?)\s+\((\d{4})\)\s+(.+)', info)
                 if titulo_match:
                     titulo_pre = titulo_match.group(1).strip()
-                    titulo = titulo_pre.replace("/", " ").replace("\\", " ").replace("-", " ")
+                    titulo = titulo_pre.replace("/", "_").replace("\\", "_").replace("-", "_").replace(" ", "_")
                     calidad = titulo_match.group(3).strip()
                 else:
                     titulo_pre = info
-                    titulo = titulo_pre.replace("/", " ").replace("\\", " ").replace("-", " ")
+                    titulo = titulo_pre.replace("/", "_").replace("\\", "_").replace("-", "_").replace(" ", "_")
                     calidad = "Desconocida"
                 # Crear carpeta para la película
                 pelicula_actual = os.path.join(carpeta_peliculas, titulo)
@@ -428,7 +430,7 @@ def procesar_peliculas(m3u_peliculas, directorio_salida):
             if pelicula_actual:
                 archivo_strm = os.path.join(pelicula_actual, f"{titulo} - {calidad}.strm")
                 with open(archivo_strm, "w", encoding="utf-8") as f:
-                    f.write(linea)
+                    f.write(f'"{linea}"')
 
 
 FolderPath = r"output_strm"
