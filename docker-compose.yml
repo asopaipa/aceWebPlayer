@@ -2,12 +2,6 @@ version: '3.8'
 
     
 services:
-  init:
-    image: alpine:3.15
-    volumes:
-      - ./run_docker.sh:/run_docker.sh:ro
-    entrypoint: ["/bin/sh", "/run_docker.sh"]
-    # Esto hace que el contenedor se ejecute y finalice
   web:
     build: .
     ports:
@@ -19,10 +13,8 @@ services:
       - FLASK_ENV=development
       - EPG_XML_PATH=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
     restart: unless-stopped
-    depends_on:
-      - init
   acestream-http-proxy:
-    image: "${ACESTREAM_IMAGE}"
+    image: asopaipa/acestream-http-proxy
     container_name: acestream-http-proxy
     restart: unless-stopped
     #Descomentar las siguientes líneas si quieres permitir la ejecución desde internet. En caso contrario, solo funcionará en tu red local 
@@ -30,7 +22,6 @@ services:
     #  - ALLOW_REMOTE_ACCESS=yes
     ports:
       - "${PORTACE:-6878}:6878"
-    depends_on:
-      - init
+
 
 
