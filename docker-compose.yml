@@ -1,5 +1,17 @@
 version: '3.8'
 
+
+# Definición de variables de entorno con detección automática de arquitectura
+# Este bloque usa un pequeño truco de Docker para evaluar la arquitectura al vuelo
+x-architecture-setup: &architecture-setup
+  ACESTREAM_IMAGE: >
+    ${ACESTREAM_IMAGE:-$(
+      case $(uname -m) in
+        armv7l|armv7|aarch64) echo "futebas/acestream-engine-arm" ;;
+        *)      echo "asopaipa/acestream-http-proxy" ;;
+      esac
+    )}
+    
 services:
   web:
     build: .
@@ -22,13 +34,4 @@ services:
     ports:
       - "${PORTACE:-6878}:6878"
 
-# Definición de variables de entorno con detección automática de arquitectura
-# Este bloque usa un pequeño truco de Docker para evaluar la arquitectura al vuelo
-x-architecture-setup: &architecture-setup
-  ACESTREAM_IMAGE: >
-    ${ACESTREAM_IMAGE:-$(
-      case $(uname -m) in
-        armv7l|armv7|aarch64) echo "futebas/acestream-engine-arm" ;;
-        *)      echo "asopaipa/acestream-http-proxy" ;;
-      esac
-    )}
+
