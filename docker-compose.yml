@@ -13,6 +13,12 @@ x-architecture-setup: &architecture-setup
     )}
     
 services:
+  init:
+    image: alpine:3.15
+    volumes:
+      - ./run_docker.sh:/run_docker.sh:ro
+    entrypoint: ["/bin/sh", "/run_docker.sh"]
+    # Esto hace que el contenedor se ejecute y finalice
   web:
     build: .
     ports:
