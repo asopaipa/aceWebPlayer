@@ -19,6 +19,8 @@ services:
       - FLASK_ENV=development
       - EPG_XML_PATH=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
     restart: unless-stopped
+    depends_on:
+      - init
   acestream-http-proxy:
     image: "${ACESTREAM_IMAGE}"
     container_name: acestream-http-proxy
@@ -28,5 +30,7 @@ services:
     #  - ALLOW_REMOTE_ACCESS=yes
     ports:
       - "${PORTACE:-6878}:6878"
+    depends_on:
+      - init
 
 
