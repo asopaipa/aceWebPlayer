@@ -1,5 +1,17 @@
 #!/bin/bash
 
+if [ -z "${ACESTREAM_IMAGE}" ]; then
+  case $(uname -m) in
+    armv7l|armv7|aarch64)
+      ACESTREAM_IMAGE="futebas/acestream-engine-arm"
+      ;;
+    *)
+      ACESTREAM_IMAGE="asopaipa/acestream-http-proxy"
+      ;;
+  esac
+fi
+
+export ACESTREAM_IMAGE
 
 DOCKER_COMPOSE_CMD=""
 
