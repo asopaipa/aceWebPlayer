@@ -3,3 +3,6 @@ requests
 pytz
 cryptography
 werkzeug
+playwright
+setuptools
+bs4
