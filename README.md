@@ -4,6 +4,8 @@
 
 Es un reproductor web que te permite cargar listas con acestreams y reproducirlas en el navegador. De esta forma, puedes ver los vídeos en cualquier dispositivo con navegador sin necesidad de tener instalado Acestream en cada uno de ellos. Tiene soporte tanto para películas como para directos e incopora agenda deportiva.
 
+A partir de la actualización del 15/4/2025, el Acestream Engine no va incluído en este Docker y deberá ser instalado aparte.
+
 ## Captura
 
 ![imatge](https://github.com/user-attachments/assets/c696fadf-049a-4e53-acb8-3255f3c799f7)
