@@ -91,6 +91,21 @@
                             </div>
                      
                         </div>
+                        
+                        <!-- Configuración del servidor Acestream -->
+                        <div class="mb-3">
+                            <label for="aceStreamServer" class="form-label">Servidor Acestream:</label>
+                            <div class="input-group">
+                                <select id="aceStreamProtocol" name="aceStreamProtocol" class="form-select" style="width: auto">
+                                    <option value="http" {% if acestream_protocol == 'http' %}selected{% endif %}>http://</option>
+                                    <option value="https" {% if acestream_protocol == 'https' %}selected{% endif %}>https://</option>
+                                </select>
+                                <input type="text" id="aceStreamServer" name="aceStreamServer" class="form-control" 
+                                    placeholder="dirección:puerto" value="{{ acestream_server }}">
+                                <button type="button" id="saveSettings" class="btn btn-outline-primary">Guardar</button>
+                            </div>
+                        </div>
+                        
                         <input class="btn btn-primary" type="checkbox" name="export_strm" value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
                         <button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar</button>
                     </form>

@@ -3,30 +3,123 @@ function loadChannel(contentId) {
     const video = document.getElementById('video');
     const videoDiv = document.getElementById('video-div');
     const initialMessage = document.getElementById('initial-message');
-    const videoSrc = `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
+    
+    // Usar la dirección del servidor Acestream configurada o el host actual por defecto
+    const aceStreamServer = localStorage.getItem('aceStreamServer') || `${window.location.hostname}:6878`;
+    // Determinar el protocolo a usar
+    const aceStreamProtocol = localStorage.getItem('aceStreamProtocol') || 'http';
+    const videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
 
+    // Mostrar mensaje de carga
     initialMessage.style.display = 'none';
     video.style.display = 'block';
     videoDiv.style.display = 'block';
+    
+    // Información de depuración
+    console.log('Intentando cargar stream desde:', videoSrc);
 
     // Selección de los botones
     const infoEnlaces = document.getElementById('info_enlaces');
 
-    infoEnlaces.innerHTML = `Enlace remoto: <a href="${videoSrc}" target="_blank">${videoSrc}</a><br>Enlace Acestream: <a href="acestream://${contentId}" target="_blank">${contentId}</a>`;
+    infoEnlaces.innerHTML = `
+        <div class="alert alert-info">
+            <p><strong>Enlace remoto:</strong> <a href="${videoSrc}" target="_blank">${videoSrc}</a></p>
+            <p><strong>Enlace Acestream:</strong> <a href="acestream://${contentId}" target="_blank">${contentId}</a></p>
+            <div id="stream-status">Conectando al stream...</div>
+        </div>`;
+    
+    const streamStatus = document.getElementById('stream-status');
 
     if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(videoSrc);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            video.play();
+        const hls = new Hls({
+            debug: true,  // Activar modo debug
+            xhrSetup: function(xhr, url) {
+                // Log de todas las solicitudes XHR
+                console.log('XHR Request to:', url);
+                xhr.addEventListener('load', function() {
+                    console.log('XHR Response:', xhr.status, xhr.responseText.substring(0, 100) + '...');
+                });
+                xhr.addEventListener('error', function() {
+                    console.error('XHR Error:', xhr.status);
+                    streamStatus.innerHTML = `<span class="text-danger">Error de conexión (${xhr.status}). Intenta con otro servidor o protocolo.</span>`;
+                });
+            }
         });
+        
+        // Manejadores de eventos HLS
+        hls.on(Hls.Events.MEDIA_ATTACHED, function() {
+            console.log('HLS: Media attached');
+            streamStatus.innerHTML = 'Conectado al reproductor. Cargando stream...';
+        });
+        
+        hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+            console.log('HLS: Manifest parsed, found ' + data.levels.length + ' quality levels');
+            streamStatus.innerHTML = 'Stream cargado. Iniciando reproducción...';
+            video.play().then(() => {
+                console.log('Reproducción iniciada correctamente');
+                streamStatus.innerHTML = 'Reproduciendo';
+            }).catch(e => {
+                console.error('Error al iniciar reproducción:', e);
+                streamStatus.innerHTML = `<span class="text-danger">Error al iniciar reproducción: ${e.message}</span>`;
+            });
+        });
+        
+        hls.on(Hls.Events.ERROR, function(event, data) {
+            console.error('HLS Error:', data);
+            if (data.fatal) {
+                switch(data.type) {
+                    case Hls.ErrorTypes.NETWORK_ERROR:
+                        streamStatus.innerHTML = `<span class="text-danger">Error de red: ${data.details}. Intenta con otro servidor o protocolo.</span>`;
+                        console.error('Error de red fatal', data);
+                        hls.startLoad(); // Intentar reconectar
+                        break;
+                    case Hls.ErrorTypes.MEDIA_ERROR:
+                        streamStatus.innerHTML = `<span class="text-danger">Error de medio: ${data.details}. Intentando recuperarse...</span>`;
+                        console.error('Error de medio fatal', data);
+                        hls.recoverMediaError(); // Intentar recuperarse
+                        break;
+                    default:
+                        streamStatus.innerHTML = `<span class="text-danger">Error desconocido: ${data.details}</span>`;
+                        console.error('Error fatal desconocido', data);
+                        hls.destroy();
+                        break;
+                }
+            }
+        });
+        
+        // Cargar el origen
+        try {
+            hls.loadSource(videoSrc);
+            hls.attachMedia(video);
+        } catch (e) {
+            console.error('Error al cargar el origen HLS:', e);
+            streamStatus.innerHTML = `<span class="text-danger">Error al cargar el stream: ${e.message}</span>`;
+        }
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Para navegadores Safari que soportan HLS nativamente
+        console.log('Usando soporte HLS nativo');
+        streamStatus.innerHTML = 'Usando soporte HLS nativo del navegador...';
+        
         video.src = videoSrc;
         video.addEventListener('loadedmetadata', function() {
-            video.play();
+            console.log('Metadata cargada, iniciando reproducción');
+            streamStatus.innerHTML = 'Metadata cargada, iniciando reproducción...';
+            video.play().then(() => {
+                console.log('Reproducción iniciada correctamente');
+                streamStatus.innerHTML = 'Reproduciendo';
+            }).catch(e => {
+                console.error('Error al iniciar reproducción:', e);
+                streamStatus.innerHTML = `<span class="text-danger">Error al iniciar reproducción: ${e.message}</span>`;
+            });
+        });
+        
+        video.addEventListener('error', function(e) {
+            console.error('Error de video:', video.error);
+            streamStatus.innerHTML = `<span class="text-danger">Error de video: ${video.error ? video.error.message : 'Desconocido'}</span>`;
         });
     } else {
+        console.error('HLS no soportado');
+        streamStatus.innerHTML = '<span class="text-danger">Tu navegador no soporta la reproducción de este video.</span>';
         alert('Tu navegador no soporta la reproducción de este video.');
     }
 }
@@ -99,6 +192,39 @@ function filterChannels() {
 document.addEventListener('DOMContentLoaded', function() {
     // Apply theme
     applyTheme();
+
+    // Actualizar el campo de servidor Acestream con el valor guardado
+    const aceStreamServerInput = document.getElementById('aceStreamServer');
+    if (aceStreamServerInput) {
+        const savedServer = localStorage.getItem('aceStreamServer');
+        if (savedServer) {
+            aceStreamServerInput.value = savedServer;
+        } else {
+            // Valor por defecto: hostname actual con puerto 6878
+            aceStreamServerInput.value = `${window.location.hostname}:6878`;
+        }
+    }
+    
+    // Actualizar el selector de protocolo con el valor guardado
+    const aceStreamProtocolSelect = document.getElementById('aceStreamProtocol');
+    if (aceStreamProtocolSelect) {
+        const savedProtocol = localStorage.getItem('aceStreamProtocol');
+        if (savedProtocol) {
+            aceStreamProtocolSelect.value = savedProtocol;
+        }
+    }
+
+    // Manejador para guardar la configuración del servidor Acestream
+    const saveSettingsBtn = document.getElementById('saveSettings');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.addEventListener('click', function() {
+            const aceStreamServer = document.getElementById('aceStreamServer').value.trim();
+            const aceStreamProtocol = document.getElementById('aceStreamProtocol').value;
+            localStorage.setItem('aceStreamServer', aceStreamServer);
+            localStorage.setItem('aceStreamProtocol', aceStreamProtocol);
+            alert('Configuración guardada correctamente');
+        });
+    }
 
     // Sidebar toggle functionality
     const sidebarToggle = document.getElementById('sidebar-toggle');
