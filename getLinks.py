@@ -20,7 +20,7 @@ def decode_default_url():
     return decrypt(url, key, iv), decrypt(url2, key, iv2)
 
 
-def generar_m3u_from_url(miHost, urls, tipo):
+def generar_m3u_from_url(miHost, urls, tipo, protocolo="http"):
     # Ruta del diccionario CSV
     csv_file = "resources/dictionary.csv"
     # Archivos de salida
@@ -102,7 +102,7 @@ def generar_m3u_from_url(miHost, urls, tipo):
                             elif line.startswith("http") or line.startswith("acestream:"):  # Enlace de streaming
                                 if line not in enlaces_unicos:
                                     enlaces_unicos.add(line)
-                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual,tipo)
+                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, protocolo)
                         
                 else:
                    
@@ -112,7 +112,7 @@ def generar_m3u_from_url(miHost, urls, tipo):
                         for canal, acestream_url in matches:
                             if acestream_url not in enlaces_unicos:
                                 enlaces_unicos.add(acestream_url)
-                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal,tipo)
+                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, protocolo)
             except Exception as e:
                 print(f"Error procesando URL {url}: {e}")
 
@@ -120,7 +120,7 @@ def generar_m3u_from_url(miHost, urls, tipo):
 
 
 
-def escribir_m3u(f, f1, url, diccionario, miHost, canal,tipo):
+def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http"):
     """
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
     """
@@ -149,13 +149,10 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal,tipo):
     # Escribir en el archivo remoto (si aplica)
     if url.startswith("acestream://"):
         acestream_id = url.replace("acestream://", "")
-        parsed_url = urlparse(f"http://{miHost}")
-        hostname = parsed_url.hostname
+        # Usar directamente miHost sin parsear y el protocolo proporcionado
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
-        f1.write(f'http://{hostname}:6878/ace/manifest.m3u8?id={acestream_id}&pid={numero_aleatorio}\n')
+        f1.write(f'{protocolo}://{miHost}/ace/manifest.m3u8?id={acestream_id}&pid={numero_aleatorio}\n')
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
-
-
-
+        

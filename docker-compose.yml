@@ -1,11 +1,8 @@
-version: '3.8'
-
-    
 services:
   web:
     build: .
     ports:
-      - "${PORT:-5001}:5000"
+      - "5001:5000"
     volumes:
       - ./resources:/app/resources
       - ./static:/app/static
@@ -13,15 +10,12 @@ services:
       - FLASK_ENV=development
       - EPG_XML_PATH=https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz
     restart: unless-stopped
-  acestream-http-proxy:
-    image: ghcr.io/martinbjeldbak/acestream-http-proxy
-    container_name: acestream-http-proxy
-    restart: unless-stopped
-    #Descomentar las siguientes líneas si quieres permitir la ejecución desde internet. En caso contrario, solo funcionará en tu red local 
-    #environment:
-    #  - ALLOW_REMOTE_ACCESS=yes
-    ports:
-      - "${PORTACE:-6878}:6878"
-
-
-
+  # acestream-http-proxy:
+  #   image: ghcr.io/martinbjeldbak/acestream-http-proxy
+  #   container_name: acestream-http-proxy
+  #   restart: unless-stopped
+  #   #Descomentar las siguientes líneas si quieres permitir la ejecución desde internet. En caso contrario, solo funcionará en tu red local 
+  #   #environment:
+  #   #  - ALLOW_REMOTE_ACCESS=yes
+  #   ports:
+  #     - "${PORTACE:-6878}:6878"

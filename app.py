@@ -28,19 +28,23 @@ PASSWORD = ""
 # Ruta del archivo donde se guardarán los datos persistidos
 DATA_FILE = "urls.json"
 
-def save_to_file(textarea1, textarea2, checkbox, file_input):
+def save_to_file(textarea1, textarea2, checkbox, acestream_server, acestream_protocol, file_input):
     """
-    Guarda los datos de los dos textareas y el estado del checkbox en un archivo JSON.
+    Guarda los datos de los dos textareas, el estado del checkbox, el servidor Acestream y el protocolo en un archivo JSON.
     
     :param textarea1: Contenido del primer textarea (cadena).
     :param textarea2: Contenido del segundo textarea (cadena).
     :param checkbox: Estado del checkbox (True o False).
+    :param acestream_server: Servidor Acestream (cadena).
+    :param acestream_protocol: Protocolo Acestream (http o https).
     :param file_input: Ruta del archivo donde se guardarán los datos.
     """
     data = {
         "textarea1": textarea1 if textarea1 is not None else "",
         "textarea2": textarea2 if textarea2 is not None else "",
-        "checkbox": checkbox
+        "checkbox": checkbox,
+        "acestream_server": acestream_server if acestream_server else "",
+        "acestream_protocol": acestream_protocol if acestream_protocol else "http"
     }
     
     with open(file_input, "w") as file:
@@ -48,10 +52,10 @@ def save_to_file(textarea1, textarea2, checkbox, file_input):
 
 def load_from_file(file_input):
     """
-    Carga los datos de los dos textareas y el estado del checkbox desde un archivo JSON.
+    Carga los datos de los dos textareas, el estado del checkbox, el servidor Acestream y el protocolo desde un archivo JSON.
     
     :param file_input: Ruta del archivo desde donde se cargarán los datos.
-    :return: Una tupla con el contenido de textarea1, textarea2 y el estado del checkbox.
+    :return: Una tupla con el contenido de textarea1, textarea2, el estado del checkbox, el servidor Acestream y el protocolo.
     """
     if os.path.exists(file_input):
         with open(file_input, "r") as file:
@@ -60,12 +64,14 @@ def load_from_file(file_input):
                 textarea1 = data.get("textarea1", "")
                 textarea2 = data.get("textarea2", "")
                 checkbox = data.get("checkbox", False)
-                return textarea1, textarea2, checkbox
+                acestream_server = data.get("acestream_server", "")
+                acestream_protocol = data.get("acestream_protocol", "http")
+                return textarea1, textarea2, checkbox, acestream_server, acestream_protocol
             except json.JSONDecodeError:
                 # En caso de error al leer el JSON, devolver valores por defecto
-                return "", "", False
+                return "", "", False, "", "http"
     # Si el archivo no existe, devolver valores por defecto
-    return "", "", False
+    return "", "", False, "", "http"
 
     
 def requires_auth(f):
@@ -284,18 +290,24 @@ def download_file(filename):
 def index():
     channels = []
     groups = set()
+    acestream_server = ""
+    acestream_protocol = "http"
     
     if request.method == 'POST':
         if request.form.get('default_list') == 'true':
             direccion_bytes, direccion_pelis_bytes = decode_default_url()
             direccion = direccion_bytes.decode("utf-8")
             direccion_pelis = direccion_pelis_bytes.decode("utf-8")
-            save_to_file(direccion, direccion_pelis, False, DATA_FILE)       
+            acestream_server = request.form.get('aceStreamServer', '')
+            acestream_protocol = request.form.get('aceStreamProtocol', 'http')
+            save_to_file(direccion, direccion_pelis, False, acestream_server, acestream_protocol, DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [direccion]
             urls_pelis = [direccion_pelis]
-            generar_m3u_from_url(request.host, urls, "directos")
-            generar_m3u_from_url(request.host, urls_pelis, "pelis")
+            # Usar el servidor Acestream proporcionado o el host por defecto
+            host_to_use = acestream_server if acestream_server else request.host
+            generar_m3u_from_url(host_to_use, urls, "directos", acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", acestream_protocol)
             textarea_content = direccion
             textarea_content_pelis = direccion_pelis
             export_strm = False
@@ -305,19 +317,22 @@ def index():
             textarea_content_pelis = request.form.get('urlInputPelis', '').strip()   
             export_strm = False
             export_strm = 'export_strm' in request.form
+            acestream_server = request.form.get('aceStreamServer', '')
+            acestream_protocol = request.form.get('aceStreamProtocol', 'http')
             # Guardar los datos en el archivo
-            save_to_file(textarea_content,textarea_content_pelis,export_strm,DATA_FILE)       
+            save_to_file(textarea_content, textarea_content_pelis, export_strm, acestream_server, acestream_protocol, DATA_FILE)       
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
             urls_pelis = [url.strip() for url in textarea_content_pelis.splitlines() if url.strip()]
-            generar_m3u_from_url(request.host, urls, "directos")
-            generar_m3u_from_url(request.host, urls_pelis, "pelis")
+            # Usar el servidor Acestream proporcionado o el host por defecto
+            host_to_use = acestream_server if acestream_server else request.host
+            generar_m3u_from_url(host_to_use, urls, "directos", acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", acestream_protocol)
     else:
         # Cargar los datos persistidos desde el archivo
-        textarea_content, textarea_content_pelis, export_strm  =  load_from_file(DATA_FILE)
+        textarea_content, textarea_content_pelis, export_strm, acestream_server, acestream_protocol = load_from_file(DATA_FILE)
 
     if export_strm:
-        
         # Procesar directos y películas
         procesar_directos("resources/acestream_directos.m3u", "output_strm/acestream")
         procesar_peliculas("resources/acestream_pelis.m3u", "output_strm/acestream")
@@ -367,7 +382,10 @@ def index():
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
-    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm, textarea_content_pelis=textarea_content_pelis)
+    return render_template('index.html', channels=channels, groups=groups, 
+                           textarea_content=textarea_content, export_strm=export_strm, 
+                           textarea_content_pelis=textarea_content_pelis,
+                           acestream_server=acestream_server, acestream_protocol=acestream_protocol)
 
 def procesar_directos(m3u_directos, directorio_salida):
     """
