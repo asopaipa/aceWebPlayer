@@ -1,4 +1,5 @@
 from cryptoLink import decrypt
+from scrapperIptv import ScraperManager, RojadirectaScraper, DaddyLiveScraper
 from urllib.parse import urlparse, urljoin
 import re
 import random
@@ -6,7 +7,21 @@ import requests
 import csv
 from bs4 import BeautifulSoup
 
+def normalizar(texto):
+    
 
+    # Eliminar todo lo que esté después de " >"
+    texto = texto.split(" >")[0]
+    # Eliminar todo lo que esté después de " -->"
+    texto = texto.split(" -->")[0]
+
+    # Eliminar palabras como "SD", "HD", "FHD", "4K" (independientemente de mayúsculas/minúsculas)
+    texto = re.sub(r'\b(SD|HD|FHD|4K)\b', '', texto, flags=re.IGNORECASE)
+
+
+
+    return texto.strip().lower()
+    
 def decode_default_url():
     
     # URL de la que quieres obtener los datos
@@ -15,21 +30,27 @@ def decode_default_url():
     iv2 = b'\n]\x95\xc4\x98\xc5\xa5\x01\xca#\x90w\x07\x87\xb3$'
     iv = b'[\xb0E\x9a-\x98.\xd6\xe9>-\x1a$4`}'
     key = b'h\x03\xf5\x0er\xa7\xf7\x8b\xfd\xbaa\x08\r,\x02\x08\x82\n\xcdJ^\xef\xed\xb7\xa88\xca\xcd0\xed\x98l'
+    url3 = b'M\xe6\xf9\xdcL\xabA\xde\xc2\xf3x\xc0f\x1c\xb7\xd7\xc6\xa5\x8f\x16\x01\x1a\xb3\xa9\xf8\xf3\x9a%a\x1c\x90E'
+    iv3 = b'bU2\xca_)\x16/\xa7B.\xc4\x85x\xba\xb4'
+
     
     # Realizar la solicitud HTTP
-    return decrypt(url, key, iv), decrypt(url2, key, iv2)
+    return decrypt(url, key, iv), decrypt(url2, key, iv2), decrypt(url3, key, iv3)
 
 
-def generar_m3u_from_url(miHost, urls, tipo, protocolo="http"):
+def generar_m3u_from_url(miHost, urls, tipo, folder, protocolo="http"):
     # Ruta del diccionario CSV
     csv_file = "resources/dictionary.csv"
     # Archivos de salida
     if tipo == "directos":
-        output_file = "resources/acestream_directos.m3u"
-        output_file_remote = "resources/web_directos.m3u"
+        output_file = f"{folder}/acestream_directos.m3u"
+        output_file_remote = f"{folder}/web_directos.m3u"
     if tipo == "pelis":
-        output_file = "resources/acestream_pelis.m3u"
-        output_file_remote = "resources/web_pelis.m3u"
+        output_file = f"{folder}/acestream_pelis.m3u"
+        output_file_remote = f"{folder}/web_pelis.m3u"
+    if tipo == "webs":
+        scrapIptv(urls, folder)
+        return
     
     # Cargar el diccionario desde el CSV
     diccionario = {}
@@ -37,7 +58,8 @@ def generar_m3u_from_url(miHost, urls, tipo, protocolo="http"):
         reader = csv.reader(f)
         for row in reader:
             canal, canal_epg, imagen, grupo = row
-            diccionario[canal] = {"canal_epg": canal_epg, "imagen": imagen, "grupo": grupo}
+            canal_normalizado = normalizar(canal)
+            diccionario[canal_normalizado] = {"canal_epg": canal_epg, "imagen": imagen, "grupo": grupo}
 
     # Lista para almacenar enlaces únicos
     enlaces_unicos = set()
@@ -102,7 +124,7 @@ def generar_m3u_from_url(miHost, urls, tipo, protocolo="http"):
                             elif line.startswith("http") or line.startswith("acestream:"):  # Enlace de streaming
                                 if line not in enlaces_unicos:
                                     enlaces_unicos.add(line)
-                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, protocolo)
+                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual,tipo, protocolo)
                         
                 else:
                    
@@ -119,17 +141,18 @@ def generar_m3u_from_url(miHost, urls, tipo, protocolo="http"):
     print(f"Archivos generados: {output_file}, {output_file_remote}")
 
 
-
 def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http"):
     """
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
     """
     numero_aleatorio = random.randint(1, 10000)
 
-    if canal in diccionario:
-        canal_epg = diccionario[canal]["canal_epg"]
-        imagen = diccionario[canal]["imagen"]
-        grupo = diccionario[canal]["grupo"]
+    canal_normalizado = normalizar(canal)
+
+    if canal_normalizado in diccionario:
+        canal_epg = diccionario[canal_normalizado]["canal_epg"]
+        imagen = diccionario[canal_normalizado]["imagen"]
+        grupo = diccionario[canal_normalizado]["grupo"]
     else:
         canal = canal.replace("/", " ").replace("\\", " ").replace("-", " ")
         canal_epg = ""
@@ -138,6 +161,8 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http")
             grupo = "OTROS"
         if tipo == "pelis":
             grupo = "PELIS"
+        if tipo == "webs":
+            grupo = "IPTV"
 
     # Si no hay nombre del canal, usar la URL como nombre
     canal = canal or url
@@ -155,4 +180,24 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http")
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
-        
+
+
+
+
+def scrapIptv(urls, folder):
+    # Crear instancia del gestor de scrapers
+    manager = ScraperManager()
+    
+    # Registrar scrapers para diferentes sitios
+    manager.register_scraper("rojadirecta", RojadirectaScraper)
+    #manager.register_scraper("daddylive", DaddyLiveScraper)
+    
+    
+    # Hacer scraping de todas las URLs
+    results = manager.scrape_multiple_urls(urls)
+    
+    # Exportar resultados
+    #manager.export_to_json("all_events.json")
+    #manager.export_to_csv(f"{folder}/all_events.csv")
+    manager.export_to_m3u(f"{folder}/web_iptv.m3u")
+    
