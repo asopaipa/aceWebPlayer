@@ -1,5 +1,6 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+FROM mcr.microsoft.com/playwright/python:v1.51.0-noble
+
+RUN apt-get update && apt-get -y install ffmpeg
 
 # Set working directory
 WORKDIR /app
