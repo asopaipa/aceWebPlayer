@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, send_file
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, send_file, jsonify, render_template_string, stream_with_context
 from getLinks import generar_m3u_from_url, decode_default_url
 import re
 import os
@@ -12,10 +12,15 @@ import io
 import threading
 import time
 import shutil
+import argparse
 from pathlib import Path
 from werkzeug.utils import safe_join
 from operator import itemgetter
-
+import asyncio
+from playwright.async_api import async_playwright
+import subprocess
+import uuid
+from urllib.parse import quote
 
 app = Flask(__name__)
 
@@ -25,16 +30,20 @@ EPG_XML_PATH = os.getenv("EPG_XML_PATH", 'https://epgshare01.online/epgshare01/e
 USERNAME = "" #si está vacía, no se requerirá autenticación
 PASSWORD = ""  
 
+FOLDER_RESOURCES=""
 # Ruta del archivo donde se guardarán los datos persistidos
-DATA_FILE = "urls.json"
+DATA_FILE = ""
 
-def save_to_file(textarea1, textarea2, checkbox, acestream_server, acestream_protocol, file_input):
+def save_to_file(textarea1, textarea2, textarea3, checkbox, acestream_server, acestream_protocol, file_input):
+
     """
-    Guarda los datos de los dos textareas, el estado del checkbox, el servidor Acestream y el protocolo en un archivo JSON.
+    Guarda los datos de los tres textareas, el estado del checkbox, el servidor Acestream y el protocolo en un archivo JSON.
     
     :param textarea1: Contenido del primer textarea (cadena).
     :param textarea2: Contenido del segundo textarea (cadena).
+    :param textarea3: Contenido del tercer textarea (cadena).
     :param checkbox: Estado del checkbox (True o False).
+    :param file_input: Ruta del archivo donde se guardarán los datos.
     :param acestream_server: Servidor Acestream (cadena).
     :param acestream_protocol: Protocolo Acestream (http o https).
     :param file_input: Ruta del archivo donde se guardarán los datos.
@@ -42,6 +51,7 @@ def save_to_file(textarea1, textarea2, checkbox, acestream_server, acestream_pro
     data = {
         "textarea1": textarea1 if textarea1 is not None else "",
         "textarea2": textarea2 if textarea2 is not None else "",
+        "textarea3": textarea3 if textarea3 is not None else "",
         "checkbox": checkbox,
         "acestream_server": acestream_server if acestream_server else "",
         "acestream_protocol": acestream_protocol if acestream_protocol else "http"
@@ -50,30 +60,225 @@ def save_to_file(textarea1, textarea2, checkbox, acestream_server, acestream_pro
     with open(file_input, "w") as file:
         json.dump(data, file)
 
+
+
+async def scan_streams(target_url):
+    found_streams = []
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        # Captura de requests
+        async def handle_request(req):
+            url = req.url  
+            print(url)
+            if any(x in url for x in ["m3u8", "mp4"]):
+                found_streams.append({
+                    "url": url,
+                    "headers": dict(req.headers)
+                })
+
+        page.on("request", handle_request)
+
+        # Captura de responses
+        async def handle_response(res):
+            url = res.url
+            print(url)
+            if any(x in url for x in ["m3u8", "mp4"]):
+                found_streams.append({
+                    "url": url,
+                    "headers": dict(res.headers)
+                })
+
+        
+
+        page.on("response", handle_response)
+
+        await page.goto(target_url)
+        await page.wait_for_timeout(5000)  # Espera extra para asegurar carga
+        await browser.close()
+
+    return found_streams
+
 def load_from_file(file_input):
     """
-    Carga los datos de los dos textareas, el estado del checkbox, el servidor Acestream y el protocolo desde un archivo JSON.
+    Carga los datos de los tres textareas, el estado del checkbox, el servidor Acestream y el protocolo desde un archivo JSON.
     
     :param file_input: Ruta del archivo desde donde se cargarán los datos.
-    :return: Una tupla con el contenido de textarea1, textarea2, el estado del checkbox, el servidor Acestream y el protocolo.
+    :return: Una tupla con el contenido de textarea1, textarea2, textarea3, el estado del checkbox, el servidor Acestream y el protocolo.
     """
+
     if os.path.exists(file_input):
         with open(file_input, "r") as file:
             try:
                 data = json.load(file)
                 textarea1 = data.get("textarea1", "")
                 textarea2 = data.get("textarea2", "")
+                textarea3 = data.get("textarea3", "")
                 checkbox = data.get("checkbox", False)
                 acestream_server = data.get("acestream_server", "")
                 acestream_protocol = data.get("acestream_protocol", "http")
-                return textarea1, textarea2, checkbox, acestream_server, acestream_protocol
+                return textarea1, textarea2, textarea3, checkbox, acestream_server, acestream_protocol
             except json.JSONDecodeError:
                 # En caso de error al leer el JSON, devolver valores por defecto
-                return "", "", False, "", "http"
+                return "", "", "", False, "", "http"
     # Si el archivo no existe, devolver valores por defecto
-    return "", "", False, "", "http"
+    return "", "", "", False, "", "http"
 
+
+
+
+
+
+# Directorio para almacenar temporalmente los segmentos HLS
+TEMP_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_streams')
+os.makedirs(TEMP_DIR, exist_ok=True)
+
+# Diccionario para mantener el seguimiento de los procesos activos
+active_streams = {}
+
+def clean_old_streams():
+    """Limpia streams antiguos periódicamente"""
+    while True:
+        now = time.time()
+        for stream_id in list(active_streams.keys()):
+            info = active_streams.get(stream_id)
+            if info and now - info['last_access'] > 60:  # 60 segundos sin acceso
+                try:
+                    print(f"Limpiando stream inactivo: {stream_id}")
+                    if info['process'] and info['process'].poll() is None:
+                        info['process'].terminate()
+                        info['process'].wait(timeout=5)
+                        info['process'].kill()
+                    
+                    # Eliminar directorio de segmentos
+                    stream_dir = os.path.join(TEMP_DIR, stream_id)
+                    if os.path.exists(stream_dir):
+                        shutil.rmtree(stream_dir)
+                    
+                    del active_streams[stream_id]
+                except Exception as e:
+                    print(f"Error al limpiar stream {stream_id}: {str(e)}")
+        
+        time.sleep(10)  # Revisar cada 10 segundos
+
+# Iniciar thread de limpieza
+cleanup_thread = threading.Thread(target=clean_old_streams, daemon=True)
+cleanup_thread.start()
+
+def start_ffmpeg_process(stream_url, stream_id, stream_headers):
+    """Inicia un proceso FFmpeg para generar los segmentos HLS"""
+    stream_dir = os.path.join(TEMP_DIR, stream_id)
+    os.makedirs(stream_dir, exist_ok=True)
     
+    # Ruta para los archivos de playlist y segmentos
+    playlist_path = os.path.join(stream_dir, 'playlist.m3u8')
+    segment_path = os.path.join(stream_dir, 'segment_%03d.ts')
+    
+    # Comando FFmpeg optimizado para streaming
+    cmd = [
+        'ffmpeg',
+        '-i', stream_url,               # URL de entrada
+        '-headers', stream_headers,
+        '-c', 'copy',                   # Copiar sin transcodificar
+        '-f', 'hls',                    # Formato de salida HLS
+        '-hls_time', '2',               # Duración de cada segmento
+        '-hls_list_size', '10',         # Número de segmentos en la playlist
+        '-hls_flags', 'delete_segments',# Eliminar segmentos antiguos
+        '-hls_segment_filename', segment_path,  # Patrón de nombre de segmentos
+        playlist_path                   # Archivo de playlist
+    ]
+    
+    # Iniciar proceso en modo no bloqueante
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=10**8
+    )
+    
+    # Guardar información del proceso
+    active_streams[stream_id] = {
+        'process': process,
+        'stream_url': stream_url,
+        'last_access': time.time(),
+        'stream_dir': stream_dir
+    }
+    
+    # Monitorear errores en un hilo separado
+    def monitor_errors():
+        for line in iter(process.stderr.readline, b''):
+            line = line.decode('utf-8', errors='ignore').strip()
+            if line and not line.startswith('frame='):  # Filtrar mensajes de progreso
+                print(f"FFmpeg [{stream_id}]: {line}")
+    
+    error_thread = threading.Thread(target=monitor_errors, daemon=True)
+    error_thread.start()
+    
+    return stream_id
+
+@app.route('/stream/start/<path:stream_url>')
+def create_stream(stream_url):
+    
+    """Inicia un nuevo stream y devuelve su ID"""
+    try:
+
+
+        result = asyncio.run(scan_streams(stream_url))
+        if not result:
+            print("Canal no disponible")
+            return
+        # Se utiliza el primer stream de la lista
+        stream_data = result[0]
+        stream_url_final = stream_data["url"]
+        stream_headers = stream_data["headers"]
+    
+        # Construir el string de headers para FFmpeg.
+        # FFmpeg espera los headers en formato "Clave: Valor\r\n"
+        headers_str = "".join(f"{key}: {value}\r\n" for key, value in stream_headers.items())
+            
+        # Generar ID único para este stream
+        stream_id = str(uuid.uuid4())
+        
+        # Iniciar proceso FFmpeg
+        start_ffmpeg_process(stream_url_final, stream_id, headers_str)
+        
+        # Devolver ID del stream y URL de la playlist
+        playlist_url = f"/stream/playlist/{stream_id}/playlist.m3u8"
+        return {
+            'stream_id': stream_id,
+            'playlist_url': playlist_url,
+            'player_url': f"/?stream={quote(playlist_url)}"
+        }
+    except Exception as e:
+        print(f"Error al crear stream: {str(e)}")
+        return str(e), 500
+
+@app.route('/stream/playlist/<stream_id>/<path:filename>')
+def serve_playlist(stream_id, filename):
+    """Sirve la playlist o segmentos HLS"""
+    if stream_id not in active_streams:
+        return "Stream no encontrado", 404
+    
+    # Actualizar timestamp de último acceso
+    active_streams[stream_id]['last_access'] = time.time()
+    
+    # Directorio del stream
+    stream_dir = active_streams[stream_id]['stream_dir']
+    
+    # Devolver archivo solicitado
+    return send_from_directory(stream_dir, filename)
+
+
+
+
+
+
+
+
+
 def requires_auth(f):
     def decorated(*args, **kwargs):
         # Si el usuario está vacío, no aplica la autenticación
@@ -241,7 +446,7 @@ def parse_m3u(content):
                 group=group_match.group(1) if group_match else "Sin categoría",
                 tvg_id=tvg_id_match.group(1) if tvg_id_match else None
             )
-        elif line.startswith('acestream://') and current_channel:
+        elif current_channel:
             current_channel.id = line.replace('acestream://', '').strip()
             channels.append(current_channel)
             current_channel = None
@@ -268,7 +473,7 @@ def update_epg_data():
 @requires_auth
 def download_file(filename):
     # Directorio donde están los archivos
-    directory = "resources"
+    
     try:
         # Descargar el archivo
     
@@ -279,7 +484,7 @@ def download_file(filename):
         if filename not in archivos_permitidos:
             abort(403, description="Archivo no autorizado para la descarga.")
         
-        return send_from_directory(directory, filename, as_attachment=True)
+        return send_from_directory(FOLDER_RESOURCES, filename, as_attachment=True)
     except FileNotFoundError:
         return f"El archivo {filename} no existe.", 404
 
@@ -295,58 +500,69 @@ def index():
     
     if request.method == 'POST':
         if request.form.get('default_list') == 'true':
-            direccion_bytes, direccion_pelis_bytes = decode_default_url()
+            direccion_bytes, direccion_pelis_bytes, direccion_webs_bytes = decode_default_url()
             direccion = direccion_bytes.decode("utf-8")
             direccion_pelis = direccion_pelis_bytes.decode("utf-8")
+            direccion_webs = direccion_webs_bytes.decode("utf-8")
             acestream_server = request.form.get('aceStreamServer', '')
             acestream_protocol = request.form.get('aceStreamProtocol', 'http')
-            save_to_file(direccion, direccion_pelis, False, acestream_server, acestream_protocol, DATA_FILE)       
+            save_to_file(direccion, direccion_pelis, direccion_webs, False, acestream_server, acestream_protocol, DATA_FILE)    
             # Procesar cada línea como una URL
             urls = [direccion]
             urls_pelis = [direccion_pelis]
+            urls_webs = [direccion_webs]
             # Usar el servidor Acestream proporcionado o el host por defecto
             host_to_use = acestream_server if acestream_server else request.host
-            generar_m3u_from_url(host_to_use, urls, "directos", acestream_protocol)
-            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls, "directos",FOLDER_RESOURCES, acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", FOLDER_RESOURCES,acestream_protocol)
+            generar_m3u_from_url(request.host, urls_webs, "webs",FOLDER_RESOURCES,acestream_protocol)
+                        
             textarea_content = direccion
             textarea_content_pelis = direccion_pelis
+            textarea_content_webs = direccion_webs
             export_strm = False
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()      
             textarea_content_pelis = request.form.get('urlInputPelis', '').strip()   
+            textarea_content_webs = request.form.get('urlInputWebs', '').strip()  
             export_strm = False
             export_strm = 'export_strm' in request.form
             acestream_server = request.form.get('aceStreamServer', '')
             acestream_protocol = request.form.get('aceStreamProtocol', 'http')
             # Guardar los datos en el archivo
-            save_to_file(textarea_content, textarea_content_pelis, export_strm, acestream_server, acestream_protocol, DATA_FILE)       
+            save_to_file(textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, acestream_server, acestream_protocol, DATA_FILE)       
+
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
             urls_pelis = [url.strip() for url in textarea_content_pelis.splitlines() if url.strip()]
-            # Usar el servidor Acestream proporcionado o el host por defecto
+            urls_webs = [url.strip() for url in textarea_content_webs.splitlines() if url.strip()]
+
             host_to_use = acestream_server if acestream_server else request.host
-            generar_m3u_from_url(host_to_use, urls, "directos", acestream_protocol)
-            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls, "directos", FOLDER_RESOURCES,acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis",FOLDER_RESOURCES, acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls_webs, "webs", FOLDER_RESOURCES, acestream_protocol)
+
     else:
         # Cargar los datos persistidos desde el archivo
-        textarea_content, textarea_content_pelis, export_strm, acestream_server, acestream_protocol = load_from_file(DATA_FILE)
+        textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, acestream_server, acestream_protocol =  load_from_file(DATA_FILE)
 
     if export_strm:
+        
         # Procesar directos y películas
-        procesar_directos("resources/acestream_directos.m3u", "output_strm/acestream")
-        procesar_peliculas("resources/acestream_pelis.m3u", "output_strm/acestream")
+        procesar_directos(f"{FOLDER_RESOURCES}/acestream_directos.m3u", f"{FOLDER_RESOURCES}/output_strm/acestream")
+        procesar_peliculas(f"{FOLDER_RESOURCES}/acestream_pelis.m3u", f"{FOLDER_RESOURCES}/output_strm/acestream")
 
-        procesar_directos("resources/web_directos.m3u", "output_strm/web")
-        procesar_peliculas("resources/web_pelis.m3u", "output_strm/web")
+        procesar_directos(f"{FOLDER_RESOURCES}/web_directos.m3u", f"{FOLDER_RESOURCES}/output_strm/web")
+        procesar_peliculas(f"{FOLDER_RESOURCES}/web_pelis.m3u", f"{FOLDER_RESOURCES}/output_strm/web")
     else:
-        if os.path.exists("output_strm/acestream"):
-            shutil.rmtree("output_strm/acestream")
+        if os.path.exists(f"{FOLDER_RESOURCES}/output_strm/acestream"):
+            shutil.rmtree(f"{FOLDER_RESOURCES}/output_strm/acestream")
 
-        if os.path.exists("output_strm/web"):
-            shutil.rmtree("output_strm/web")
-    if os.path.exists("resources/acestream_directos.m3u") and os.stat("resources/acestream_directos.m3u").st_size > 5:
-        with open("resources/acestream_directos.m3u", 'r', encoding='utf-8') as file:
+        if os.path.exists(f"{FOLDER_RESOURCES}/output_strm/web"):
+            shutil.rmtree(f"{FOLDER_RESOURCES}/output_strm/web")
+    if os.path.exists(f"{FOLDER_RESOURCES}/acestream_directos.m3u") and os.stat(f"{FOLDER_RESOURCES}/acestream_directos.m3u").st_size > 5:
+        with open(f"{FOLDER_RESOURCES}/acestream_directos.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
             channels = parse_m3u(content)
     
@@ -372,8 +588,14 @@ def index():
         groups = sorted(list(groups))
 
 
-    if os.path.exists("resources/acestream_pelis.m3u") and os.stat("resources/acestream_pelis.m3u").st_size > 5:
-        with open("resources/acestream_pelis.m3u", 'r', encoding='utf-8') as file:
+    if os.path.exists(f"{FOLDER_RESOURCES}/acestream_pelis.m3u") and os.stat(f"{FOLDER_RESOURCES}/acestream_pelis.m3u").st_size > 5:
+        with open(f"{FOLDER_RESOURCES}/acestream_pelis.m3u", 'r', encoding='utf-8') as file:
+            content = file.read()
+            channels2 = parse_m3u(content)
+            channels.extend(channels2)
+
+    if os.path.exists(f"{FOLDER_RESOURCES}/web_iptv.m3u") and os.stat(f"{FOLDER_RESOURCES}/web_iptv.m3u").st_size > 5:
+        with open(f"{FOLDER_RESOURCES}/web_iptv.m3u", 'r', encoding='utf-8') as file:
             content = file.read()
             channels2 = parse_m3u(content)
             channels.extend(channels2)
@@ -382,10 +604,7 @@ def index():
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
-    return render_template('index.html', channels=channels, groups=groups, 
-                           textarea_content=textarea_content, export_strm=export_strm, 
-                           textarea_content_pelis=textarea_content_pelis,
-                           acestream_server=acestream_server, acestream_protocol=acestream_protocol)
+    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm, textarea_content_pelis=textarea_content_pelis, textarea_content_webs=textarea_content_webs, acestream_server=acestream_server, acestream_protocol=acestream_protocol)
 
 def procesar_directos(m3u_directos, directorio_salida):
     """
@@ -451,7 +670,7 @@ def procesar_peliculas(m3u_peliculas, directorio_salida):
                     f.write(linea)
 
 
-FolderPath = r"output_strm"
+
 
 
 
@@ -485,13 +704,14 @@ def getIconClassForFilename(fName):
 @app.route('/output_strm/', defaults={'reqPath': ''})
 @app.route('/output_strm/<path:reqPath>')
 def getFiles(reqPath):
+    FolderPath = f"{FOLDER_RESOURCES}/output_strm/"
     # Join the base and the requested path
     # could have done os.path.join, but safe_join ensures that files are not fetched from parent folders of the base folder
     absPath = safe_join(FolderPath, reqPath)
 
     # Return 404 if path doesn't exist
     if not os.path.exists(absPath):
-        return abort(404)
+        return "No existe: " + absPath
 
     # Check if path is a file and serve
     if os.path.isfile(absPath):
@@ -512,23 +732,40 @@ def getFiles(reqPath):
                 'mTime': getTimeStampString(fileStat.st_mtime),
                 'espacios_fecha': "       " if os.path.isdir(x.path) else "".ljust(7 - len(getReadableByteSize(fileStat.st_size)[:6])),
                 'size': "-" if os.path.isdir(x.path) else getReadableByteSize(fileStat.st_size)[:6]}
-        
-    #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
-    fileObjs = sorted(
-        [fObjFromScan(x) for x in os.scandir(absPath)],
-        key=itemgetter('name')
-    )
-    # get parent directory url
-    parentFolderPath = os.path.relpath(
-        Path(absPath).parents[0], FolderPath).replace("\\", "/")
-    return render_template('files.html.j2', data={'files': fileObjs,
-                                                 'parentFolder': parentFolderPath})
+
+    try:
+        #fileObjs = [fObjFromScan(x) for x in os.scandir(absPath)]
+        fileObjs = sorted(
+            [fObjFromScan(x) for x in os.scandir(absPath)],
+            key=itemgetter('name')
+        )
+        # get parent directory url
+        parentFolderPath = os.path.relpath(
+            Path(absPath).parents[0], FolderPath).replace("\\", "/")
+        return render_template('files.html.j2', data={'files': fileObjs,
+                                                     'parentFolder': parentFolderPath})
+    except Exception as e:
+        return "Error: " + str(e)
+                  
     
+
     
 if __name__ == '__main__':
+    # Configuramos el parser de argumentos
+    parser = argparse.ArgumentParser(description="Ejemplo de Flask con argumento -d")
+    parser.add_argument("-d", "--directory", help="Directorio para la aplicación", required=False)
+    args = parser.parse_args()
+
+    # Verificamos si se proporcionó el argumento y si el directorio existe
+    FOLDER_RESOURCES="resources"
+    DATA_FILE = "resources/urls.json"
+    if args.directory:
+        if os.path.exists(args.directory):
+            FOLDER_RESOURCES=args.directory
+            DATA_FILE = f"{args.directory}/urls.json"
     # Start EPG updater thread
     updater_thread = threading.Thread(target=update_epg_data)
     updater_thread.daemon = True
     updater_thread.start()
     
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', threaded=True)
