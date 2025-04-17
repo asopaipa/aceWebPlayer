@@ -1,5 +1,57 @@
 var PidId=Math.floor(10000000 + Math.random() * 90000000).toString();
+
+
 function loadChannel(contentId) {
+
+    if(contentId.length==20)
+        loadChannelPost(contentId);
+    else
+    {
+        const video = document.getElementById('video');
+        const videoDiv = document.getElementById('video-div');
+        
+        const initialMessage = document.getElementById('initial-message');
+        // Mostrar mensaje de carga
+        initialMessage.style.display = 'none';
+        video.style.display = 'block';
+        videoDiv.style.display = 'block';
+        
+        // Información de depuración
+        console.log("Intentando cargar stream desde: /stream/start/" + encodeURIComponent(contentId));
+    
+        // Selección de los botones
+        const infoEnlaces = document.getElementById('info_enlaces');
+    
+        infoEnlaces.innerHTML = `
+            <div class="alert alert-info">
+                <p><strong>Enlace remoto:</strong> <a href="/stream/start/${encodeURIComponent(contentId)}" target="_blank">/stream/start/${encodeURIComponent(contentId)}</a></p>
+                <div id="stream-status">Conectando al stream...</div>
+            </div>`;
+        
+        const streamStatus = document.getElementById('stream-status');
+        // Llamar al endpoint para crear el stream
+        fetch("/stream/start/" + encodeURIComponent(contentId))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al crear el stream");
+                }
+                return response.json();
+            })
+            .then(data => {
+
+                loadChannelPost(data.playlist_url);
+            })
+            .catch(error => {
+                console.log('Error: ', error.message);
+                streamStatus.innerHTML = "<span class='text-danger'>Error de conexión ("+error.message+"). Intenta con otro servidor o protocolo.</span>";
+            });
+        
+    }
+
+}
+
+
+function loadChannelPost(contentId) {
     const video = document.getElementById('video');
     const videoDiv = document.getElementById('video-div');
     const initialMessage = document.getElementById('initial-message');
@@ -8,25 +60,37 @@ function loadChannel(contentId) {
     const aceStreamServer = localStorage.getItem('aceStreamServer') || `${window.location.hostname}:6878`;
     // Determinar el protocolo a usar
     const aceStreamProtocol = localStorage.getItem('aceStreamProtocol') || 'http';
-    const videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
+    videoSrc = "";
+    if(contentId.length==20)
+    {
+        videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
 
-    // Mostrar mensaje de carga
-    initialMessage.style.display = 'none';
-    video.style.display = 'block';
-    videoDiv.style.display = 'block';
+        // Mostrar mensaje de carga
+        initialMessage.style.display = 'none';
+        video.style.display = 'block';
+        videoDiv.style.display = 'block';
+        
+        // Información de depuración
+        console.log('Intentando cargar stream desde:', videoSrc);
     
-    // Información de depuración
-    console.log('Intentando cargar stream desde:', videoSrc);
+        // Selección de los botones
+        const infoEnlaces = document.getElementById('info_enlaces');
+    
+        infoEnlaces.innerHTML = `
+            <div class="alert alert-info">
+                <p><strong>Enlace remoto:</strong> <a href="${videoSrc}" target="_blank">${videoSrc}</a></p>
+                <p><strong>Enlace Acestream:</strong> <a href="acestream://${contentId}" target="_blank">${contentId}</a></p>
+                <div id="stream-status">Conectando al stream...</div>
+            </div>`;
+    }
+    else
+    {
 
-    // Selección de los botones
-    const infoEnlaces = document.getElementById('info_enlaces');
+        videoSrc=contentId;
+        
+    }
 
-    infoEnlaces.innerHTML = `
-        <div class="alert alert-info">
-            <p><strong>Enlace remoto:</strong> <a href="${videoSrc}" target="_blank">${videoSrc}</a></p>
-            <p><strong>Enlace Acestream:</strong> <a href="acestream://${contentId}" target="_blank">${contentId}</a></p>
-            <div id="stream-status">Conectando al stream...</div>
-        </div>`;
+
     
     const streamStatus = document.getElementById('stream-status');
 
