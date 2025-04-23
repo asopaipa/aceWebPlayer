@@ -116,13 +116,14 @@
                         </div>
                         
                         <input class="btn btn-primary" type="checkbox" name="export_strm" value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
-                        <br/><button class="btn btn-primary" type="submit" name="submit_url" value="true">Cargar</button>
+                        <br/><button class="btn btn-primary" type="submit" name="submit_url" value="true">Refrescar</button>
                     </form>
                     <br>
                     <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Acestream</button>
                     <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Remoto (VLC)</button>
                     <button type="button" id="descargar_m3u_ace_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Acestream</button>
                     <button type="button" id="descargar_m3u_remote_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Remoto (VLC)</button>
+                    <button type="button" id="descargar_m3u_iptv" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U IPTV con Headers para Kodi. Exportación lenta</button>
 
                     
                     <br>
@@ -272,6 +273,8 @@
             const descargar_m3u_ace = document.getElementById('descargar_m3u_ace'); // Selecciona el botón
             const descargar_m3u_remote_pelis = document.getElementById('descargar_m3u_remote_pelis'); // Selecciona el botón
             const descargar_m3u_ace_pelis = document.getElementById('descargar_m3u_ace_pelis'); // Selecciona el botón
+            const descargar_m3u_iptv = document.getElementById('descargar_m3u_iptv'); // Selecciona el botón
+            
             const searchInput = document.getElementById('searchInput'); // Selecciona el botón
 
             
@@ -287,6 +290,7 @@
                     descargar_m3u_ace.style.display = 'none';
                     descargar_m3u_remote_pelis.style.display = 'none'; 
                     descargar_m3u_ace_pelis.style.display = 'none';
+                    descargar_m3u_iptv.style.display = 'none';
                     searchInput.style.display = 'none';
                 } else {
                     submitButton.style.display = 'none'; 
@@ -294,6 +298,7 @@
                     descargar_m3u_ace.style.display = 'inline'; 
                     descargar_m3u_remote_pelis.style.display = 'inline'; 
                     descargar_m3u_ace_pelis.style.display = 'inline';
+                    descargar_m3u_iptv.style.display = 'inline';
                     searchInput.style.display = 'inline';
 
                 }
