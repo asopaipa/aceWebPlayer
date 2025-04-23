@@ -17,10 +17,11 @@ from pathlib import Path
 from werkzeug.utils import safe_join
 from operator import itemgetter
 import asyncio
-from playwright.async_api import async_playwright
 import subprocess
 import uuid
 from urllib.parse import quote
+from playwright.async_api import async_playwright
+
 
 app = Flask(__name__)
 
@@ -33,6 +34,233 @@ PASSWORD = ""
 FOLDER_RESOURCES=""
 # Ruta del archivo donde se guardarán los datos persistidos
 DATA_FILE = ""
+
+
+def export_iptv(channels, filepath):
+    
+    filtered_rows = []
+    if channels:
+        with open(filepath, "w") as f:
+            for channel in channels:
+                found_streams = asyncio.run(scan_streams(channel.id))
+                if found_streams and found_streams[0] and found_streams[0]["url"] and found_streams[0]["headers"]:
+                    f.write(f'#EXTINF:-1 tvg-id="" tvg-logo="" group-title="{channel.group}", {channel.name} \n')
+                    f.write(format_url_with_headers(found_streams[0]["url"], found_streams[0]["headers"]))
+                
+
+    else:
+        logger.warning("No hay datos para exportar")     
+        
+async def scan_streams(target_url):
+    found_streams = []
+    event = asyncio.Event()
+    
+    async with async_playwright() as p:
+        # Configuración del navegador
+        prefs = {
+            "media.autoplay.default": 0,  # 0=Allowed, 1=Blocked, 2=Prompt
+            "media.autoplay.blocking_policy": 0, # Deshabilitar política de bloqueo adicional
+            "media.autoplay.allow-muted": True, # A menudo necesario incluso con autoplay permitido
+            "security.mixed_content.block_active_content": False # ¡PELIGROSO! Solo para diagnóstico
+        }
+        
+        browser = await p.firefox.launch(
+            headless=True,
+            firefox_user_prefs=prefs
+        )
+        
+        # Configuración del contexto
+        context = await browser.new_context(
+            viewport={"width": 1920, "height": 1080},
+            permissions=['geolocation'],
+            #user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            ignore_https_errors=True
+        )
+        
+        # Manejo de eventos de red
+        async def handle_request(req):
+            url = req.url
+            if any(x in url for x in [".m3u8",".mp4"]):
+                print(f"Stream encontrado (request): {url}")
+                found_streams.append({
+                    "url": url,
+                    "headers": dict(req.headers),
+                    "source": "request"
+                })
+                event.set()
+                
+        async def handle_response(res):
+            url = res.url
+            if any(x in url for x in [".m3u8",".mp4"]):
+                print(f"Stream encontrado (response): {url}")
+                found_streams.append({
+                    "url": url,
+                    "headers": dict(res.headers),
+                    "source": "response"
+                })
+                event.set()
+        
+        context.on("request", handle_request)
+        context.on("response", handle_response)
+        
+        # Crear página 
+        page = await context.new_page()
+
+                
+        
+        try:
+            # Navegación inicial
+            await page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+            print("Página cargada inicialmente")
+            
+            # Esperar carga inicial
+            i=0.1
+            if not found_streams and i > 8:
+                i=i+0.1
+                await asyncio.sleep(0.1)
+
+            if not found_streams:
+                # Inyectar script para eliminar características restrictivas
+                await page.evaluate("""() => {
+                    // Eliminar atributos sandbox
+                    document.querySelectorAll('iframe[sandbox]').forEach(iframe => {
+                        iframe.removeAttribute('sandbox');
+                    });
+                    
+                    // Modificar reproductor de video para autoplay
+                    document.querySelectorAll('video').forEach(video => {
+                        video.autoplay = true;
+                        video.muted = true;  // Los navegadores permiten autoplay si está silenciado
+                        video.play().catch(e => console.log('Error al reproducir:', e));
+                    });
+                    
+                    // Simular interacción de usuario
+                    const simulateUserInteraction = () => {
+                        document.body.click();
+                        document.querySelectorAll('video, [class*="player"], [id*="player"]').forEach(el => {
+                            try {
+                                if (el.play) el.play();
+                                el.click();
+                            } catch(e) {}
+                        });
+                    };
+                    
+                    // Ejecutar ahora y después de un tiempo
+                    simulateUserInteraction();
+                    setTimeout(simulateUserInteraction, 3000);
+                }""")
+            
+            # Simular acciones de usuario
+            await page.mouse.move(500, 500)
+            await page.mouse.down()
+            await page.mouse.up()
+            
+            # Intentar hacer clic en elementos conocidos
+            #for selector in ["video", "[class*='play']", "[id*='player']", "iframe"]:
+            #    elements = await page.query_selector_all(selector)
+            #    for element in elements:
+            #        try:
+            #            await element.scroll_into_view_if_needed()
+            #            await element.click(force=True, timeout=1000)
+            #            await asyncio.sleep(2)
+            #        except Exception:
+            #            pass
+            
+            # Buscar y procesar iframes
+            '''
+            if not found_streams:
+                iframe_handles = await page.query_selector_all('iframe')
+                print(f"Encontrados {len(iframe_handles)} iframes")
+                
+                for idx, iframe in enumerate(iframe_handles):
+                    try:
+                        iframe_src = await iframe.get_attribute('src')
+                        if iframe_src:
+                            print(f"Procesando iframe {idx+1}: {iframe_src}")
+                            
+                            # Intentar acceder al contenido del iframe
+                            frame = await iframe.content_frame()
+                            if frame:
+                                # Intentar reproducir videos dentro del iframe
+                                await frame.evaluate("""() => {
+                                    document.querySelectorAll('video').forEach(v => {
+                                        v.autoplay = true;
+                                        v.muted = true;
+                                        v.play().catch(e => {});
+                                    });
+                                    
+                                    // Clic en elementos potenciales
+                                    ['video', '[class*="play"]', '[id*="player"]'].forEach(selector => {
+                                        document.querySelectorAll(selector).forEach(el => {
+                                            try { el.click(); } catch(e) {}
+                                        });
+                                    });
+                                }""")
+                            else:
+                                # Si no podemos acceder al iframe, intenta abrir en nueva pestaña
+                                if iframe_src.startsWith('http'):
+                                    try:
+                                        iframe_page = await context.new_page()
+                                        await iframe_page.goto(iframe_src, timeout=30000)
+                                        await asyncio.sleep(5)
+                                        await iframe_page.close()
+                                    except Exception as e:
+                                        print(f"Error al abrir iframe en nueva pestaña: {e}")
+                    except Exception as e:
+                        print(f"Error procesando iframe {idx+1}: {e}")
+            '''
+            # Esperar para encontrar streams
+            print("Esperando para encontrar streams (60 segundos)...")
+            try:
+                await asyncio.wait_for(event.wait(), timeout=60)
+                print("¡Stream encontrado!")
+            except asyncio.TimeoutError:
+                print("Timeout sin encontrar streams")
+            
+            # Capturar screenshot y HTML final
+            await page.screenshot(path="screenshot_final.png")
+            final_html = await page.content()
+            with open("web_iptv_final.html", "w", encoding="utf-8") as f:
+                f.write(final_html)
+                
+        except Exception as e:
+            print(f"Error durante la ejecución: {e}")
+            
+        finally:
+            print("Manteniendo navegador abierto por 30 segundos para inspección...")
+            #await asyncio.sleep(30)
+            await browser.close()
+    
+    return found_streams
+
+def format_url_with_headers(url, headers):
+    """
+    Formatea una URL y un diccionario de headers en el formato:
+    url|Header1=Value1&Header2=Value2&...
+    Los valores de los headers son URL-encoded.
+
+    Args:
+        url (str): La URL base.
+        headers (dict): Un diccionario con los headers.
+
+    Returns:
+        str: La cadena formateada.
+    """
+    # Crear lista de strings "key=encoded_value"
+    header_parts = []
+    for key, value in headers.items():
+        # Codificamos el valor del header. safe='' asegura que caracteres como / también se codifiquen.
+        encoded_value = quote(str(value), safe='')
+        header_parts.append(f"{key}={encoded_value}")
+
+    # Unir las partes con '&'
+    header_string = "&".join(header_parts)
+
+    # Devolver el formato final
+    if header_string: # Solo añadir el '|' si hay headers
+        return f"{url}|{header_string}\n"
+    else:
+        return f"{url}\n" # Si no hay headers, devolver solo la URL
 
 def save_to_file(textarea1, textarea2, textarea3, checkbox, acestream_server, acestream_protocol, file_input):
 
@@ -62,45 +290,7 @@ def save_to_file(textarea1, textarea2, textarea3, checkbox, acestream_server, ac
 
 
 
-async def scan_streams(target_url):
-    found_streams = []
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
-        page = await context.new_page()
-
-        # Captura de requests
-        async def handle_request(req):
-            url = req.url  
-            print(url)
-            if any(x in url for x in ["m3u8", "mp4"]):
-                found_streams.append({
-                    "url": url,
-                    "headers": dict(req.headers)
-                })
-
-        page.on("request", handle_request)
-
-        # Captura de responses
-        async def handle_response(res):
-            url = res.url
-            print(url)
-            if any(x in url for x in ["m3u8", "mp4"]):
-                found_streams.append({
-                    "url": url,
-                    "headers": dict(res.headers)
-                })
-
-        
-
-        page.on("response", handle_response)
-
-        await page.goto(target_url)
-        await page.wait_for_timeout(5000)  # Espera extra para asegurar carga
-        await browser.close()
-
-    return found_streams
 
 def load_from_file(file_input):
     """
@@ -216,6 +406,9 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
     
     error_thread = threading.Thread(target=monitor_errors, daemon=True)
     error_thread.start()
+
+
+ 
     
     return stream_id
 
@@ -227,17 +420,21 @@ def create_stream(stream_url):
 
 
         result = asyncio.run(scan_streams(stream_url))
-        if not result:
+        if not result or not result[0]:
             print("Canal no disponible")
-            return
+            return "Canal no disponible", 500
         # Se utiliza el primer stream de la lista
         stream_data = result[0]
         stream_url_final = stream_data["url"]
         stream_headers = stream_data["headers"]
+
+        print(f"URL antes de ffmpeg: {stream_url_final}")
     
         # Construir el string de headers para FFmpeg.
         # FFmpeg espera los headers en formato "Clave: Valor\r\n"
         headers_str = "".join(f"{key}: {value}\r\n" for key, value in stream_headers.items())
+
+        print(f"Headers antes de ffmpeg: {headers_str}")
             
         # Generar ID único para este stream
         stream_id = str(uuid.uuid4())
@@ -250,23 +447,38 @@ def create_stream(stream_url):
         return {
             'stream_id': stream_id,
             'playlist_url': playlist_url,
-            'player_url': f"/?stream={quote(playlist_url)}"
         }
     except Exception as e:
         print(f"Error al crear stream: {str(e)}")
         return str(e), 500
 
+
+
+    
 @app.route('/stream/playlist/<stream_id>/<path:filename>')
-def serve_playlist(stream_id, filename):
+async def serve_playlist(stream_id, filename):
+
+  
     """Sirve la playlist o segmentos HLS"""
     if stream_id not in active_streams:
         return "Stream no encontrado", 404
+
     
     # Actualizar timestamp de último acceso
     active_streams[stream_id]['last_access'] = time.time()
     
     # Directorio del stream
     stream_dir = active_streams[stream_id]['stream_dir']
+
+    file_path = os.path.join(stream_dir, filename)
+
+
+    start_time = asyncio.get_event_loop().time()
+    while asyncio.get_event_loop().time() - start_time < 5 and not os.path.exists(file_path):
+        # Añade logs para verificar que está esperando        
+        await asyncio.sleep(0.1)  # Pequeña pausa entre verificaciones
+
+
     
     # Devolver archivo solicitado
     return send_from_directory(stream_dir, filename)
@@ -478,16 +690,22 @@ def download_file(filename):
         # Descargar el archivo
     
         # Lista de nombres permitidos
-        archivos_permitidos = ["acestream_directos.m3u", "web_directos.m3u", "acestream_pelis.m3u", "web_pelis.m3u"]
+        archivos_permitidos = ["acestream_directos.m3u", "web_directos.m3u", "acestream_pelis.m3u", "web_pelis.m3u", "iptv_headers.m3u"]
     
         # Validar si el archivo es permitido
         if filename not in archivos_permitidos:
             abort(403, description="Archivo no autorizado para la descarga.")
+
+        if filename == "iptv_headers.m3u":  
+            if os.path.exists(f"{FOLDER_RESOURCES}/web_iptv.m3u") and os.stat(f"{FOLDER_RESOURCES}/web_iptv.m3u").st_size > 5:
+                with open(f"{FOLDER_RESOURCES}/web_iptv.m3u", 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    channels2 = parse_m3u(content)
+                    export_iptv(channels2, f"{FOLDER_RESOURCES}/iptv_headers.m3u")
         
         return send_from_directory(FOLDER_RESOURCES, filename, as_attachment=True)
     except FileNotFoundError:
         return f"El archivo {filename} no existe.", 404
-
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -768,4 +986,4 @@ if __name__ == '__main__':
     updater_thread.daemon = True
     updater_thread.start()
     
-    app.run(host='0.0.0.0', threaded=True)
+    app.run(host='0.0.0.0', threaded=True, use_reloader=False)
