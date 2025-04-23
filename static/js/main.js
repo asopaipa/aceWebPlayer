@@ -394,8 +394,14 @@ document.addEventListener('DOMContentLoaded', function() {
         link.click();
     });
 
-
-        document.getElementById("descargar_m3u_ace_pelis").addEventListener("click", function () {
+    document.getElementById("descargar_m3u_iptv").addEventListener("click", function () {
+        const url = "/download/iptv_headers.m3u";
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "iptv_headers.m3u"; // Puedes especificar un nombre aquí si deseas
+        link.click();
+    });
+    document.getElementById("descargar_m3u_ace_pelis").addEventListener("click", function () {
         const url = "/download/acestream_pelis.m3u";
         const link = document.createElement("a");
         link.href = url;
