@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 import re
 import json
 import importlib
@@ -10,7 +9,6 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
 import asyncio
-from playwright.async_api import async_playwright
 
 # Configuración de logging
 logging.basicConfig(
@@ -143,15 +141,65 @@ class RojadirectaScraper(BaseScraper):
 class DaddyLiveScraper(BaseScraper):
     """Scraper específico para DaddyLive"""
     
+    
     def scrape(self) -> List[Dict[str, Any]]:
         """Extraer eventos deportivos de DaddyLive"""
-        # Implementación específica para DaddyLive (ejemplo)
         if not self.soup:
+            logger.error("No se ha cargado el HTML antes de intentar scraping")
             return []
         
-        # Aquí iría la lógica específica para DaddyLive
         events = []
-        # ... código de extracción
+        channels = []
+    
+        # Patrón para identificar horas en formato HH:MM
+        time_pattern = re.compile(r'\d{2}:\d{2}')
+        
+        # Buscar todos los elementos <strong>
+        strongs = self.soup.find_all('strong')
+        
+        for strong in strongs:
+            # Convertir el contenido del strong a texto
+            texto_completo = strong.get_text()
+            
+            # Verificar si contiene un horario en formato HH:MM
+            match = time_pattern.search(texto_completo)
+            
+            if match:
+                # Obtener la hora
+                hora = match.group(0)
+                
+                # Extraer título del evento (todo lo que está entre la hora y el primer enlace)
+                titulo_inicio = texto_completo.index(hora) + len(hora)
+                titulo_fin = len(texto_completo)
+                
+                # Buscar los enlaces dentro del strong
+                canales = []
+                
+                for link in strong.find_all('a'):
+                    canales.append(link.get_text())
+                    channels.append({
+                            'name': link.get_text(),
+                            'url': link.get('href')
+                        })
+                
+                # Si hay enlaces, ajustar donde termina el título
+                if canales:
+                    titulo_fin = texto_completo.index(canales[0]) - 1  # -1 para quitar el espacio antes del canal
+                
+                titulo = texto_completo[titulo_inicio:titulo_fin].strip()
+
+                event_info = {
+                    'country_league': "",
+                    'title': titulo,
+                    'time': hora,
+                    'channels': channels
+                }
+                
+                events.append(event_info)
+                channels = []
+                
+
+        
         return events
 
 
@@ -279,6 +327,12 @@ class ScraperManager:
         #            row["headers"] = found_streams[0]["headers"]
         #            filtered_rows.append(row)
 
+        #if filtered_rows:
+        #    with open(filepathdown, "w") as f:
+                #f.write("#EXTM3U\n")
+        #        for row in all_rows:
+        #            f.write(f'#EXTINF:-1 tvg-id="" tvg-logo="" group-title="{row.get("source", "")}",{row.get("title", "")} {row.get("channel_name", "")}\n')
+        #            f.write(self.format_url_with_headers(row.get("url_stream", ""), row.get("headers")))
             
         if all_rows:
             with open(filepath, "w") as f:
@@ -287,50 +341,10 @@ class ScraperManager:
                     f.write(f'#EXTINF:-1 tvg-id="" tvg-logo="" group-title="{row.get("source", "")}",{row.get("title", "")} {row.get("channel_name", "")}\n')
                     f.write(f'{row.get("channel_url", "")}\n')
         else:
-            logger.warning("No hay datos para exportar")        
-    
-    def export_to_csv(self, filepath: str = "scraping_results.csv"):
-        """Exportar resultados a CSV"""
-        all_rows = []
-        
-        for url, events in self.results.items():
-            for event in events:
-                # Extraer el dominio de la URL
-                domain = urlparse(url).netloc
-                
-                # Para cada canal, crear una fila
-                if 'channels' in event:
-                    for channel in event.get('channels', []):
-                        row = {
-                            'source': domain,
-                            'url': url
-                        }
-                        # Añadir todos los campos del evento
-                        for key, value in event.items():
-                            if key != 'channels':  # No incluir la lista de canales
-                                row[key] = value
-                        
-                        # Añadir información del canal
-                        row['channel_name'] = channel.get('name', '')
-                        row['channel_url'] = channel.get('url', '')
-                        
-                        all_rows.append(row)
-                else:
-                    # Si no hay canales, crear una sola fila para el evento
-                    row = {
-                        'source': domain,
-                        'url': url
-                    }
-                    # Añadir todos los campos del evento
-                    for key, value in event.items():
-                        row[key] = value
-                    
-                    all_rows.append(row)
-        
-        if all_rows:
-            df = pd.DataFrame(all_rows)
-            df.to_csv(filepath, index=False, encoding='utf-8')
-            logger.info(f"Resultados exportados a {filepath}")
-        else:
-            logger.warning("No hay datos para exportar a CSV")
+            logger.warning("No hay datos para exportar")     
+
+
+
+
+
 
