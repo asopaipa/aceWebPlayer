@@ -1,4 +1,4 @@
-flask
+flask[async]
 requests
 pytz
 cryptography
@@ -6,4 +6,3 @@ werkzeug
 playwright
 setuptools
 bs4
-pandas
