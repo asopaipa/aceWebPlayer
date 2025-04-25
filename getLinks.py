@@ -39,7 +39,7 @@ def decode_default_url():
     return decrypt(url, key, iv), decrypt(url2, key, iv2), decrypt(url3, key, iv3)
 
 
-def generar_m3u_from_url(miHost, urls, tipo, folder, protocolo="http"):
+def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"):
     # Ruta del diccionario CSV
     csv_file = "resources/dictionary.csv"
     # Archivos de salida
@@ -125,7 +125,7 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, protocolo="http"):
                             elif line.startswith("http") or line.startswith("acestream:"):  # Enlace de streaming
                                 if line not in enlaces_unicos:
                                     enlaces_unicos.add(line)
-                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual,tipo, protocolo)
+                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, con_acexy, protocolo)
                         
                 else:
                    
@@ -135,18 +135,21 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, protocolo="http"):
                         for canal, acestream_url in matches:
                             if acestream_url not in enlaces_unicos:
                                 enlaces_unicos.add(acestream_url)
-                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, protocolo)
+                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, con_acexy, protocolo)
             except Exception as e:
                 print(f"Error procesando URL {url}: {e}")
 
     print(f"Archivos generados: {output_file}, {output_file_remote}")
 
 
-def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http"):
+def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protocolo="http"):
     """
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
     """
-    numero_aleatorio = random.randint(1, 10000)
+    pid_txt=""
+    if(not con_acexy):
+        numero_aleatorio = random.randint(1, 10000)
+        pid_txt=f'&pid={numero_aleatorio}'
 
     canal_normalizado = normalizar(canal)
 
@@ -177,7 +180,7 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, protocolo="http")
         acestream_id = url.replace("acestream://", "")
         # Usar directamente miHost sin parsear y el protocolo proporcionado
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
-        f1.write(f'{protocolo}://{miHost}/ace/manifest.m3u8?id={acestream_id}&pid={numero_aleatorio}\n')
+        f1.write(f'{protocolo}://{miHost}/ace/manifest.m3u8?id={acestream_id}{pid_txt}\n')
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
