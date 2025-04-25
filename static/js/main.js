@@ -3,7 +3,7 @@ var PidId=Math.floor(10000000 + Math.random() * 90000000).toString();
 
 function loadChannel(contentId) {
 
-    if(contentId.length==20)
+    if(contentId.length==40)
         loadChannelPost(contentId);
     else
     {
@@ -61,7 +61,7 @@ function loadChannelPost(contentId) {
     // Determinar el protocolo a usar
     const aceStreamProtocol = localStorage.getItem('aceStreamProtocol') || 'http';
     videoSrc = "";
-    if(contentId.length==20)
+    if(contentId.length==40)
     {
         videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}&pid=`+PidId;
 
