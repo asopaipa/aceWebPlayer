@@ -114,9 +114,9 @@
                                 <button type="button" id="saveSettings" class="btn btn-outline-primary">Guardar</button>
                             </div>
                         </div>
-                        
-                        <input class="btn btn-primary" type="checkbox" name="export_strm" value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
-                        <br/><button class="btn btn-primary" type="submit" name="submit_url" value="true">Refrescar</button>
+                        <input class="btn btn-primary" type="checkbox"  title="Activa esta opción si en lugar de usar el Engine de Acestream usas Acexy" name="con_acexy" id="con_acexy" value="1" {{ 'checked' if con_acexy else '' }} >Usas Acexy?<br/>
+                        <input class="btn btn-primary" type="checkbox" name="export_strm" title="Activa esta opción si deseas exportar los ficheros strm (para kodi) en http://IP:PUERTO/output_strm/" Acexy value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
+                        <br/><button class="btn btn-primary" type="submit" name="submit_url" value="true">Guardar y actualizar canales</button>
                     </form>
                     <br>
                     <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Acestream</button>
