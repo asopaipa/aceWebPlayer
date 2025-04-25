@@ -1,0 +1,58 @@
+name: Backup to GitLab
+
+on:
+  push:
+    branches:
+      - '**' # Ejecutar en cada push a cualquier rama
+  schedule:
+    # Ejecutar cada día a las 03:00 UTC (o la frecuencia que quieras)
+    - cron: '0 3 * * *'
+  workflow_dispatch: # Permitir ejecución manual
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necesitamos todo el historial para mirror
+
+
+
+      - name: Set up GitLab remote and push
+        env:
+          GITLAB_PAT: ${{ secrets.GITLAB_PAT }}
+          GITLAB_REPO_URL: ${{ secrets.GITLAB_REPO_URL || 'https://gitlab.com/test2494916/aceWebPlayer.git' }}
+          # Usamos el token GITHUB_TOKEN incorporado para clonar el repo actual de forma segura
+          GITHUB_CLONE_URL: "https://oauth2:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+        run: |
+          echo "Configurando Git..."
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+
+          # Construir URL de GitLab con PAT (asegúrate que GITLAB_REPO_URL es la URL HTTPS base)
+          GITLAB_HOST=$(echo "$GITLAB_REPO_URL" | sed -E 's|https?://([^/]+)/.*|\1|')
+          GITLAB_PATH=$(echo "$GITLAB_REPO_URL" | sed -E 's|https?://[^/]+/(.*)|\1|')
+          GITLAB_PUSH_URL="https://oauth2:${GITLAB_PAT}@${GITLAB_HOST}/${GITLAB_PATH}"
+
+          # Usar un directorio temporal para el mirror clone
+          MIRROR_DIR="gitlab_mirror_temp"
+          echo "Clonando desde GitHub (mirror) a $MIRROR_DIR..."
+          git clone --mirror "$GITHUB_CLONE_URL" "$MIRROR_DIR"
+          cd "$MIRROR_DIR"
+
+          echo "Pusheando ramas a GitLab..."
+          # Empuja todas las ramas locales (refs/heads/*) a las remotas correspondientes, forzando.
+          git push --force "$GITLAB_PUSH_URL" 'refs/heads/*:refs/heads/*'
+
+          echo "Pusheando tags a GitLab..."
+          # Empuja todas las tags locales (refs/tags/*) a las remotas correspondientes, forzando.
+          git push --force "$GITLAB_PUSH_URL" 'refs/tags/*:refs/tags/*'
+
+          # Limpieza (opcional)
+          cd ..
+          rm -rf "$MIRROR_DIR"
+
+          echo "Backup a GitLab completado (ramas y tags)."
