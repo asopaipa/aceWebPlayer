@@ -38,7 +38,6 @@ def decode_default_url():
     # Realizar la solicitud HTTP
     return decrypt(url, key, iv), decrypt(url2, key, iv2), decrypt(url3, key, iv3)
 
-# Estas son las funciones que debes modificar en el archivo getLinks.py
 
 def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"):
     # Ruta del diccionario CSV
@@ -102,11 +101,7 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"
                     
                     response_head = requests.head(url, allow_redirects=True, timeout=500)
                     content_type = response_head.headers.get("Content-Type", "").lower()
-                    response = requests.get(url, timeout=500)                    
-
-
-
-                
+                    response = requests.get(url, timeout=500)                             
                 
                 # Si el tipo de contenido indica un M3U
                 if "mpegurl" in content_type or "m3u" in content_type:
@@ -206,7 +201,7 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
-        
+
 def scrapIptv(urls, folder):
     # Crear instancia del gestor de scrapers
     manager = ScraperManager()
