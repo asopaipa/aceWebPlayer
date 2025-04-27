@@ -101,11 +101,7 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"
                     
                     response_head = requests.head(url, allow_redirects=True, timeout=500)
                     content_type = response_head.headers.get("Content-Type", "").lower()
-                    response = requests.get(url, timeout=500)                    
-
-
-
-                
+                    response = requests.get(url, timeout=500)                             
                 
                 # Si el tipo de contenido indica un M3U
                 if "mpegurl" in content_type or "m3u" in content_type:
@@ -113,19 +109,28 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"
                     if response.status_code == 200:
                         m3u_content = response.text
                         canal_actual = None
+                        grupo_actual = None
+                        tvg_id_actual = None
+                        logo_actual = None
                         for line in m3u_content.splitlines():
                             line = line.strip()
                             if line.startswith("#EXTINF"):
                                 # Extraer el nombre del canal de la línea #EXTINF
                                 title_match = re.search(r',([^,]+)$', line)  # Extraer título después de la última coma
-                                logo_match = re.search(r'tvg-logo="([^"]+)"', line)  # Extraer logo si está presente
+                                logo_match = re.search(r'tvg-logo="([^"]*)"', line)  # Extraer logo si está presente
+                                group_match = re.search(r'group-title="([^"]*)"', line)  # Extraer grupo si está presente
+                                tvg_id_match = re.search(r'tvg-id="([^"]*)"', line)  # Extraer tvg-id si está presente
+                                
                                 if title_match:
                                     canal_actual = title_match.group(1).strip()
-                                logo_url = logo_match.group(1) if logo_match else None
+                                grupo_actual = group_match.group(1) if group_match else None
+                                tvg_id_actual = tvg_id_match.group(1) if tvg_id_match else None
+                                logo_actual = logo_match.group(1) if logo_match else None
                             elif line.startswith("http") or line.startswith("acestream:"):  # Enlace de streaming
                                 if line not in enlaces_unicos:
                                     enlaces_unicos.add(line)
-                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, con_acexy, protocolo)
+                                    escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, con_acexy, protocolo, 
+                                                 grupo_actual, tvg_id_actual, logo_actual)
                         
                 else:
                    
@@ -135,16 +140,19 @@ def generar_m3u_from_url(miHost, urls, tipo, folder, con_acexy, protocolo="http"
                         for canal, acestream_url in matches:
                             if acestream_url not in enlaces_unicos:
                                 enlaces_unicos.add(acestream_url)
-                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, con_acexy, protocolo)
+                                escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, con_acexy, protocolo, 
+                                           None, None, None)
             except Exception as e:
                 print(f"Error procesando URL {url}: {e}")
 
     print(f"Archivos generados: {output_file}, {output_file_remote}")
 
 
-def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protocolo="http"):
+def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protocolo="http", 
+                 grupo_orig=None, tvg_id_orig=None, logo_orig=None):
     """
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
+    Prioriza los valores originales del M3U si están disponibles.
     """
     pid_txt=""
     if(not con_acexy):
@@ -153,6 +161,7 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
 
     canal_normalizado = normalizar(canal)
 
+    # Primero intentamos con el diccionario
     if canal_normalizado in diccionario:
         canal_epg = diccionario[canal_normalizado]["canal_epg"]
         imagen = diccionario[canal_normalizado]["imagen"]
@@ -167,6 +176,14 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
             grupo = "PELIS"
         if tipo == "webs":
             grupo = "IPTV"
+    
+    # Si hay valores originales del M3U, los usamos
+    if tvg_id_orig is not None:
+        canal_epg = tvg_id_orig
+    if logo_orig is not None:
+        imagen = logo_orig
+    if grupo_orig is not None:
+        grupo = grupo_orig
 
     # Si no hay nombre del canal, usar la URL como nombre
     canal = canal or url
@@ -184,9 +201,6 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
-
-
-
 
 def scrapIptv(urls, folder):
     # Crear instancia del gestor de scrapers
