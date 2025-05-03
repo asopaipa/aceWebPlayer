@@ -8,47 +8,41 @@ on:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest # Usa un runner Linux estándar de GitHub
-
-    # Permisos necesarios para que GITHUB_TOKEN pueda autenticarse y escribir en GHCR
+    runs-on: ubuntu-latest
     permissions:
-      contents: read      # Necesario para hacer checkout del código
-      packages: write     # Necesario para publicar paquetes (imágenes Docker) en GHCR
+      contents: read
+      packages: write # Asegúrate de tener este permiso para GHCR
 
     steps:
-      # 2. Paso para obtener el código de tu repositorio
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      # 3. Paso para iniciar sesión en GitHub Container Registry (GHCR)
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          # Usa el actor (usuario que disparó el workflow) como nombre de usuario
-          # y el GITHUB_TOKEN como contraseña (otorgado automáticamente por Actions)
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4. Paso para extraer metadatos (como tags) de la imagen Docker
-      #    Esto crea automáticamente tags para la imagen basados en el tag de Git.
-      #    Ej: Si el tag Git es v1.2.3, la imagen se etiquetará como ghcr.io/tu-usuario/tu-repo:v1.2.3
+      # --- AÑADIR ESTE PASO ---
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      # --- FIN DEL PASO AÑADIDO ---
+
       - name: Extract metadata (tags, labels) for Docker
-        id: meta # Le damos un ID para referenciar sus outputs después
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          # El nombre de la imagen en GHCR. Usa minúsculas.
-          # github.repository te da "tu-usuario/tu-repo"
           images: ghcr.io/${{ github.repository }}
 
-      # 5. Paso para construir la imagen Docker y publicarla en GHCR
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: . # Directorio raíz del repositorio como contexto de build
-          file: ./Dockerfile # Ubicación de tu Dockerfile (ajusta si es necesario)
-          push: true # Indica que sí queremos publicar (push) la imagen
-          tags: ${{ steps.meta.outputs.tags }} # Usa los tags generados por el paso 'meta'
-          labels: ${{ steps.meta.outputs.labels }} # Usa las labels generadas por el paso 'meta'
-          cache-from: type=gha # Intenta usar caché de builds anteriores de GitHub Actions
-          cache-to: type=gha,mode=max # Guarda el caché para futuras builds
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Ahora estas líneas deberían funcionar gracias al paso anterior
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
