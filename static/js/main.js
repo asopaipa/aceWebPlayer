@@ -66,9 +66,12 @@ function loadChannelPost(contentId) {
         con_acexy = document.getElementById('con_acexy');
         pid_txt="";
         if (!con_acexy.checked) 
+        {
             pid_txt="&pid="+PidId;
-
-        videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}${pid_txt}`;
+            videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}${pid_txt}`;
+        }
+        else
+            videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/getstream?id=${contentId}`;
 
         // Mostrar mensaje de carga
         initialMessage.style.display = 'none';
