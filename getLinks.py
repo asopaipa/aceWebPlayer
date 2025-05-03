@@ -154,10 +154,12 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
     Escribe una línea en los archivos M3U con los valores del diccionario, si aplica.
     Prioriza los valores originales del M3U si están disponibles.
     """
+    url_txt="/ace/getstream?id="
     pid_txt=""
     if(not con_acexy):
         numero_aleatorio = random.randint(1, 10000)
         pid_txt=f'&pid={numero_aleatorio}'
+        url_txt="/ace/manifest.m3u8?id="
 
     canal_normalizado = normalizar(canal)
 
@@ -197,7 +199,7 @@ def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, con_acexy, protoc
         acestream_id = url.replace("acestream://", "")
         # Usar directamente miHost sin parsear y el protocolo proporcionado
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
-        f1.write(f'{protocolo}://{miHost}/ace/manifest.m3u8?id={acestream_id}{pid_txt}\n')
+        f1.write(f'{protocolo}://{miHost}{url_txt}{acestream_id}{pid_txt}\n')
     else:
         f1.write(f'#EXTINF:-1 tvg-id="{canal_epg}" tvg-logo="{imagen}" group-title="{grupo}",{canal}\n')
         f1.write(f'{url}\n')
