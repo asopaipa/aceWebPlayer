@@ -25,4 +25,10 @@ ENV DEFAULT_M3U_PATH=${DEFAULT_M3U_PATH}
 ENV EPG_XML_PATH=${EPG_XML_PATH}
 
 # Command to run the application
+
+# Asegúrate de que run_compiled.sh sea ejecutable
+RUN chmod +x ./run_compiled.sh
+
+# Este es el script que SIEMPRE se ejecutará primero
+ENTRYPOINT ["./run_compiled.sh"]
 CMD ["python", "app.py"]
