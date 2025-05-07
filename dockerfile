@@ -1,4 +1,5 @@
-FROM mcr.microsoft.com/playwright/python:v1.51.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.52.0-noble
+
 
 RUN apt-get update && apt-get -y install ffmpeg
 
