@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
 import asyncio
+from playwright.async_api import async_playwright
+import cloudscraper25
 
 # Configuración de logging
 logging.basicConfig(
@@ -31,9 +33,18 @@ class BaseScraper(ABC):
     def load_from_url(self) -> bool:
         """Cargar HTML desde URL"""
         try:
-            response = requests.get(self.url, headers={
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            })
+            if not self.url.startswith("http"):
+                self.url = "https://" + self.url
+
+
+            scraper = cloudscraper25.create_scraper()
+        
+
+        
+            response = scraper.get(self.url)
+  
+
+       
             if response.status_code == 200:
                 self.html_content = response.text
                 self.soup = BeautifulSoup(self.html_content, 'html.parser')
@@ -71,8 +82,196 @@ class BaseScraper(ABC):
         """Método abstracto que cada scraper debe implementar"""
         pass
 
+    @abstractmethod
+    def scan_streams(self, target_url) -> List[Any]:
+        """Método abstracto que cada scraper debe implementar"""
+        raise NotImplementedError
+
+
 class RojadirectaScraper(BaseScraper):
     """Scraper específico para Rojadirecta"""
+
+    async def scan_streams(self, target_url):
+        found_streams = []
+        event = asyncio.Event()
+        
+        async with async_playwright() as p:
+            # Configuración del navegador
+            prefs = {
+                "media.autoplay.default": 0,  # 0=Allowed, 1=Blocked, 2=Prompt
+                "media.autoplay.blocking_policy": 0, # Deshabilitar política de bloqueo adicional
+                "media.autoplay.allow-muted": True, # A menudo necesario incluso con autoplay permitido
+                "security.mixed_content.block_active_content": False # ¡PELIGROSO! Solo para diagnóstico
+            }
+            
+            browser = await p.firefox.launch(
+                headless=True,
+                firefox_user_prefs=prefs
+            )
+            
+            # Configuración del contexto
+            context = await browser.new_context(
+                viewport={"width": 1920, "height": 1080},
+                permissions=['geolocation'],
+                #user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+                ignore_https_errors=True
+            )
+            
+            # Manejo de eventos de red
+            async def handle_request(req):
+                url = req.url
+                if any(x in url for x in [".m3u8",".mp4"]):
+                    print(f"Stream encontrado (request): {url}")
+                    found_streams.append({
+                        "url": url,
+                        "headers": dict(req.headers),
+                        "source": "request"
+                    })
+                    event.set()
+                    
+            async def handle_response(res):
+                url = res.url
+                if any(x in url for x in [".m3u8",".mp4"]):
+                    print(f"Stream encontrado (response): {url}")
+                    found_streams.append({
+                        "url": url,
+                        "headers": dict(res.headers),
+                        "source": "response"
+                    })
+                    event.set()
+            
+            context.on("request", handle_request)
+            context.on("response", handle_response)
+            
+            # Crear página 
+            page = await context.new_page()
+
+                    
+            
+            try:
+                # Navegación inicial
+                await page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
+                print("Página cargada inicialmente")
+                
+                # Esperar carga inicial
+                i=0.1
+                if not found_streams and i > 8:
+                    i=i+0.1
+                    await asyncio.sleep(0.1)
+
+                if not found_streams:
+                    # Inyectar script para eliminar características restrictivas
+                    await page.evaluate("""() => {
+                        // Eliminar atributos sandbox
+                        document.querySelectorAll('iframe[sandbox]').forEach(iframe => {
+                            iframe.removeAttribute('sandbox');
+                        });
+                        
+                        // Modificar reproductor de video para autoplay
+                        document.querySelectorAll('video').forEach(video => {
+                            video.autoplay = true;
+                            video.muted = true;  // Los navegadores permiten autoplay si está silenciado
+                            video.play().catch(e => console.log('Error al reproducir:', e));
+                        });
+                        
+                        // Simular interacción de usuario
+                        const simulateUserInteraction = () => {
+                            document.body.click();
+                            document.querySelectorAll('video, [class*="player"], [id*="player"]').forEach(el => {
+                                try {
+                                    if (el.play) el.play();
+                                    el.click();
+                                } catch(e) {}
+                            });
+                        };
+                        
+                        // Ejecutar ahora y después de un tiempo
+                        simulateUserInteraction();
+                        setTimeout(simulateUserInteraction, 3000);
+                    }""")
+                
+                # Simular acciones de usuario
+                await page.mouse.move(500, 500)
+                await page.mouse.down()
+                await page.mouse.up()
+                
+                # Intentar hacer clic en elementos conocidos
+                #for selector in ["video", "[class*='play']", "[id*='player']", "iframe"]:
+                #    elements = await page.query_selector_all(selector)
+                #    for element in elements:
+                #        try:
+                #            await element.scroll_into_view_if_needed()
+                #            await element.click(force=True, timeout=1000)
+                #            await asyncio.sleep(2)
+                #        except Exception:
+                #            pass
+                
+                # Buscar y procesar iframes
+                '''
+                if not found_streams:
+                    iframe_handles = await page.query_selector_all('iframe')
+                    print(f"Encontrados {len(iframe_handles)} iframes")
+                    
+                    for idx, iframe in enumerate(iframe_handles):
+                        try:
+                            iframe_src = await iframe.get_attribute('src')
+                            if iframe_src:
+                                print(f"Procesando iframe {idx+1}: {iframe_src}")
+                                
+                                # Intentar acceder al contenido del iframe
+                                frame = await iframe.content_frame()
+                                if frame:
+                                    # Intentar reproducir videos dentro del iframe
+                                    await frame.evaluate("""() => {
+                                        document.querySelectorAll('video').forEach(v => {
+                                            v.autoplay = true;
+                                            v.muted = true;
+                                            v.play().catch(e => {});
+                                        });
+                                        
+                                        // Clic en elementos potenciales
+                                        ['video', '[class*="play"]', '[id*="player"]'].forEach(selector => {
+                                            document.querySelectorAll(selector).forEach(el => {
+                                                try { el.click(); } catch(e) {}
+                                            });
+                                        });
+                                    }""")
+                                else:
+                                    # Si no podemos acceder al iframe, intenta abrir en nueva pestaña
+                                    if iframe_src.startsWith('http'):
+                                        try:
+                                            iframe_page = await context.new_page()
+                                            await iframe_page.goto(iframe_src, timeout=30000)
+                                            await asyncio.sleep(5)
+                                            await iframe_page.close()
+                                        except Exception as e:
+                                            print(f"Error al abrir iframe en nueva pestaña: {e}")
+                        except Exception as e:
+                            print(f"Error procesando iframe {idx+1}: {e}")
+                '''
+                # Esperar para encontrar streams
+                print("Esperando para encontrar streams (60 segundos)...")
+                try:
+                    await asyncio.wait_for(event.wait(), timeout=60)
+                    print("¡Stream encontrado!")
+                except asyncio.TimeoutError:
+                    print("Timeout sin encontrar streams")
+                
+                # Capturar screenshot y HTML final
+                await page.screenshot(path="screenshot_final.png")
+                final_html = await page.content()
+                with open("web_iptv_final.html", "w", encoding="utf-8") as f:
+                    f.write(final_html)
+                    
+            except Exception as e:
+                print(f"Error durante la ejecución: {e}")
+                
+            finally:
+                print("Manteniendo navegador abierto por 30 segundos para inspección...")
+                #await asyncio.sleep(30)
+                await browser.close()
+        
+        return found_streams
     
     def scrape(self) -> List[Dict[str, Any]]:
         """Extraer eventos deportivos de Rojadirecta"""
@@ -131,7 +330,8 @@ class RojadirectaScraper(BaseScraper):
                 'country_league': country_class,
                 'title': event_title,
                 'time': event_time,
-                'channels': channels
+                'channels': channels,
+                'clase': 'rojadirecta'
             }
             
             events.append(event_info)
@@ -141,7 +341,12 @@ class RojadirectaScraper(BaseScraper):
 class DaddyLiveScraper(BaseScraper):
     """Scraper específico para DaddyLive"""
     
-    
+    async def scan_streams(self, target_url):
+        found_streams = []
+
+
+        return found_streams
+
     def scrape(self) -> List[Dict[str, Any]]:
         """Extraer eventos deportivos de DaddyLive"""
         if not self.soup:
@@ -192,7 +397,8 @@ class DaddyLiveScraper(BaseScraper):
                     'country_league': "",
                     'title': titulo,
                     'time': hora,
-                    'channels': channels
+                    'channels': channels,
+                    'clase': 'daddylive'
                 }
                 
                 events.append(event_info)
@@ -221,23 +427,25 @@ class ScraperManager:
     def get_scraper_for_url(self, url: str) -> Optional[type]:
         """Obtener la clase de scraper apropiada para la URL dada"""
         domain = urlparse(url).netloc
+        if not domain:
+            domain = url
         
         for pattern, scraper_class in self.scraper_map.items():
             if pattern in domain:
-                return scraper_class
+                return scraper_class(domain)
         
         logger.warning(f"No se encontró scraper para la URL: {url}")
         return None
     
     def scrape_url(self, url: str) -> List[Dict[str, Any]]:
         """Hacer scraping de una URL específica"""
-        scraper_class = self.get_scraper_for_url(url)
+        scraper = self.get_scraper_for_url(url)
         
-        if not scraper_class:
+        if not scraper:
             logger.error(f"No hay scraper disponible para {url}")
             return []
         
-        scraper = scraper_class(url)
+        #scraper = scraper_class(url)
         if scraper.load_from_url():
             results = scraper.scrape()
             self.results[url] = results
@@ -339,7 +547,7 @@ class ScraperManager:
                 #f.write("#EXTM3U\n")
                 for row in all_rows:
                     f.write(f'#EXTINF:-1 tvg-id="" tvg-logo="" group-title="{row.get("source", "")}",{row.get("title", "")} {row.get("channel_name", "")}\n')
-                    f.write(f'{row.get("channel_url", "")}\n')
+                    f.write(f'{row.get("clase", "")}/{row.get("channel_url", "")}\n')
         else:
             logger.warning("No hay datos para exportar")     
 

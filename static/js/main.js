@@ -7,6 +7,15 @@ function loadChannel(contentId) {
         loadChannelPost(contentId);
     else
     {
+
+                
+        let clase;
+        let url;
+
+        const indicePrimeraBarra = contentId.indexOf('/');
+
+        clase = contentId.substring(0, indicePrimeraBarra);
+        url = contentId.substring(indicePrimeraBarra + 1);
         const video = document.getElementById('video');
         const videoDiv = document.getElementById('video-div');
         
@@ -17,20 +26,20 @@ function loadChannel(contentId) {
         videoDiv.style.display = 'block';
         
         // Información de depuración
-        console.log("Intentando cargar stream desde: /stream/start/" + encodeURIComponent(contentId));
+        console.log("Intentando cargar stream desde: /stream/start/" + clase + "/" +encodeURIComponent(url));
     
         // Selección de los botones
         const infoEnlaces = document.getElementById('info_enlaces');
     
         infoEnlaces.innerHTML = `
             <div class="alert alert-info">
-                <p><strong>Enlace remoto:</strong> <a href="/stream/start/${encodeURIComponent(contentId)}" target="_blank">/stream/start/${encodeURIComponent(contentId)}</a></p>
+                <p><strong>Enlace remoto:</strong> <a href="/stream/start/${clase}/${encodeURIComponent(url)}" target="_blank">/stream/start/${clase}/${encodeURIComponent(url)}</a></p>
                 <div id="stream-status">Conectando al stream...</div>
             </div>`;
         
         const streamStatus = document.getElementById('stream-status');
         // Llamar al endpoint para crear el stream
-        fetch("/stream/start/" + encodeURIComponent(contentId))
+        fetch("/stream/start/" + clase + "/" + encodeURIComponent(url))
             .then(response => {
                 if (!response.ok) {
                     throw new Error("Error al crear el stream");
