@@ -1,0 +1,9 @@
+__pycache__/cryptoLink.cpython-312.pyc
+resources/web_pelis.m3u
+resources/web_iptv.m3u
+resources/web_directos.m3u
+resources/urls.json
+resources/acestream_pelis.m3u
+resources/acestream_directos.m3u
+__pycache__/scrapperIptv.cpython-312.pyc
+__pycache__/getLinks.cpython-312.pyc

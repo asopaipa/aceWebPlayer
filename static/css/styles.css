@@ -5,6 +5,7 @@
 .channels-container {
     height: 90vh;
     overflow-y: auto;
+    margin-left: 1em 
 }
 
 .channel-item {
@@ -89,7 +90,7 @@
 
 /* Dark mode styles */
 .dark-mode {
-    background-color: #121212;
+    background-color: #121212 !important;
     color: #c6c6c6;
 }
 
@@ -109,6 +110,7 @@
 .dark-mode .accordion-body {
     background-color: #121212;
 }
+
 
 .dark-mode #initial-message {
     background-color: #1f1f1f;

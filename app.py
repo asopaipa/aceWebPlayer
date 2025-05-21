@@ -1,3 +1,4 @@
+import traceback
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, send_file, jsonify, render_template_string, stream_with_context
 from getLinks import generar_m3u_from_url, decode_default_url
 import re
@@ -20,7 +21,8 @@ import asyncio
 import subprocess
 import uuid
 from urllib.parse import quote
-from playwright.async_api import async_playwright
+from scrapperIptv import ScraperManager, RojadirectaScraper, DaddyLiveScraper
+
 
 
 app = Flask(__name__)
@@ -37,201 +39,40 @@ DATA_FILE = ""
 
 
 def export_iptv(channels, filepath):
+
+    manager = ScraperManager()
+    
+    # Registrar scrapers para diferentes sitios
+    manager.register_scraper("rojadirecta", RojadirectaScraper)
+    manager.register_scraper("daddylive", DaddyLiveScraper)
+
+    scraper_instances_cache = {}
     
     filtered_rows = []
     if channels:
         with open(filepath, "w") as f:
             for channel in channels:
-                found_streams = asyncio.run(scan_streams(channel.id))
+                parts=channel.id.split("/", 1)
+                clase=parts[0]
+                url=parts[1]
+                current_scraper = None
+                if clase in scraper_instances_cache:
+                    current_scraper = scraper_instances_cache[clase]
+                else:
+                    scraper_instance = manager.get_scraper_for_url(clase)
+                    scraper_instances_cache[clase] = scraper_instance
+                    current_scraper = scraper_instance
+
+                found_streams = asyncio.run(current_scraper.scan_streams(url))
                 if found_streams and found_streams[0] and found_streams[0]["url"] and found_streams[0]["headers"]:
                     f.write(f'#EXTINF:-1 tvg-id="" tvg-logo="" group-title="{channel.group}", {channel.name} \n')
                     f.write(format_url_with_headers(found_streams[0]["url"], found_streams[0]["headers"]))
                 
 
     else:
-        logger.warning("No hay datos para exportar")     
+        print("No hay datos para exportar")     
         
-async def scan_streams(target_url):
-    found_streams = []
-    event = asyncio.Event()
-    
-    async with async_playwright() as p:
-        # Configuración del navegador
-        prefs = {
-            "media.autoplay.default": 0,  # 0=Allowed, 1=Blocked, 2=Prompt
-            "media.autoplay.blocking_policy": 0, # Deshabilitar política de bloqueo adicional
-            "media.autoplay.allow-muted": True, # A menudo necesario incluso con autoplay permitido
-            "security.mixed_content.block_active_content": False # ¡PELIGROSO! Solo para diagnóstico
-        }
-        
-        browser = await p.firefox.launch(
-            headless=True,
-            firefox_user_prefs=prefs
-        )
-        
-        # Configuración del contexto
-        context = await browser.new_context(
-            viewport={"width": 1920, "height": 1080},
-            permissions=['geolocation'],
-            #user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-            ignore_https_errors=True
-        )
-        
-        # Manejo de eventos de red
-        async def handle_request(req):
-            url = req.url
-            if any(x in url for x in [".m3u8",".mp4"]):
-                print(f"Stream encontrado (request): {url}")
-                found_streams.append({
-                    "url": url,
-                    "headers": dict(req.headers),
-                    "source": "request"
-                })
-                event.set()
-                
-        async def handle_response(res):
-            url = res.url
-            if any(x in url for x in [".m3u8",".mp4"]):
-                print(f"Stream encontrado (response): {url}")
-                found_streams.append({
-                    "url": url,
-                    "headers": dict(res.headers),
-                    "source": "response"
-                })
-                event.set()
-        
-        context.on("request", handle_request)
-        context.on("response", handle_response)
-        
-        # Crear página 
-        page = await context.new_page()
 
-                
-        
-        try:
-            # Navegación inicial
-            await page.goto(target_url, wait_until="domcontentloaded", timeout=60000)
-            print("Página cargada inicialmente")
-            
-            # Esperar carga inicial
-            i=0.1
-            if not found_streams and i > 8:
-                i=i+0.1
-                await asyncio.sleep(0.1)
-
-            if not found_streams:
-                # Inyectar script para eliminar características restrictivas
-                await page.evaluate("""() => {
-                    // Eliminar atributos sandbox
-                    document.querySelectorAll('iframe[sandbox]').forEach(iframe => {
-                        iframe.removeAttribute('sandbox');
-                    });
-                    
-                    // Modificar reproductor de video para autoplay
-                    document.querySelectorAll('video').forEach(video => {
-                        video.autoplay = true;
-                        video.muted = true;  // Los navegadores permiten autoplay si está silenciado
-                        video.play().catch(e => console.log('Error al reproducir:', e));
-                    });
-                    
-                    // Simular interacción de usuario
-                    const simulateUserInteraction = () => {
-                        document.body.click();
-                        document.querySelectorAll('video, [class*="player"], [id*="player"]').forEach(el => {
-                            try {
-                                if (el.play) el.play();
-                                el.click();
-                            } catch(e) {}
-                        });
-                    };
-                    
-                    // Ejecutar ahora y después de un tiempo
-                    simulateUserInteraction();
-                    setTimeout(simulateUserInteraction, 3000);
-                }""")
-            
-            # Simular acciones de usuario
-            await page.mouse.move(500, 500)
-            await page.mouse.down()
-            await page.mouse.up()
-            
-            # Intentar hacer clic en elementos conocidos
-            #for selector in ["video", "[class*='play']", "[id*='player']", "iframe"]:
-            #    elements = await page.query_selector_all(selector)
-            #    for element in elements:
-            #        try:
-            #            await element.scroll_into_view_if_needed()
-            #            await element.click(force=True, timeout=1000)
-            #            await asyncio.sleep(2)
-            #        except Exception:
-            #            pass
-            
-            # Buscar y procesar iframes
-            '''
-            if not found_streams:
-                iframe_handles = await page.query_selector_all('iframe')
-                print(f"Encontrados {len(iframe_handles)} iframes")
-                
-                for idx, iframe in enumerate(iframe_handles):
-                    try:
-                        iframe_src = await iframe.get_attribute('src')
-                        if iframe_src:
-                            print(f"Procesando iframe {idx+1}: {iframe_src}")
-                            
-                            # Intentar acceder al contenido del iframe
-                            frame = await iframe.content_frame()
-                            if frame:
-                                # Intentar reproducir videos dentro del iframe
-                                await frame.evaluate("""() => {
-                                    document.querySelectorAll('video').forEach(v => {
-                                        v.autoplay = true;
-                                        v.muted = true;
-                                        v.play().catch(e => {});
-                                    });
-                                    
-                                    // Clic en elementos potenciales
-                                    ['video', '[class*="play"]', '[id*="player"]'].forEach(selector => {
-                                        document.querySelectorAll(selector).forEach(el => {
-                                            try { el.click(); } catch(e) {}
-                                        });
-                                    });
-                                }""")
-                            else:
-                                # Si no podemos acceder al iframe, intenta abrir en nueva pestaña
-                                if iframe_src.startsWith('http'):
-                                    try:
-                                        iframe_page = await context.new_page()
-                                        await iframe_page.goto(iframe_src, timeout=30000)
-                                        await asyncio.sleep(5)
-                                        await iframe_page.close()
-                                    except Exception as e:
-                                        print(f"Error al abrir iframe en nueva pestaña: {e}")
-                    except Exception as e:
-                        print(f"Error procesando iframe {idx+1}: {e}")
-            '''
-            # Esperar para encontrar streams
-            print("Esperando para encontrar streams (60 segundos)...")
-            try:
-                await asyncio.wait_for(event.wait(), timeout=60)
-                print("¡Stream encontrado!")
-            except asyncio.TimeoutError:
-                print("Timeout sin encontrar streams")
-            
-            # Capturar screenshot y HTML final
-            await page.screenshot(path="screenshot_final.png")
-            final_html = await page.content()
-            with open("web_iptv_final.html", "w", encoding="utf-8") as f:
-                f.write(final_html)
-                
-        except Exception as e:
-            print(f"Error durante la ejecución: {e}")
-            
-        finally:
-            print("Manteniendo navegador abierto por 30 segundos para inspección...")
-            #await asyncio.sleep(30)
-            await browser.close()
-    
-    return found_streams
 
 def format_url_with_headers(url, headers):
     """
@@ -262,19 +103,17 @@ def format_url_with_headers(url, headers):
     else:
         return f"{url}\n" # Si no hay headers, devolver solo la URL
 
-def save_to_file(textarea1, textarea2, textarea3, checkbox, con_acexy, acestream_server, acestream_protocol, file_input):
+def save_to_file(textarea1, textarea2, textarea3, checkbox, acestream_server, file_input):
 
     """
-    Guarda los datos de los tres textareas, el estado del checkbox, el servidor Acestream y el protocolo en un archivo JSON.
+    Guarda los datos de los tres textareas, el estado del checkbox y el servidor Acestream  en un archivo JSON.
     
     :param textarea1: Contenido del primer textarea (cadena).
     :param textarea2: Contenido del segundo textarea (cadena).
     :param textarea3: Contenido del tercer textarea (cadena).
     :param checkbox: Estado del checkbox de strm (True o False).
-    :param con_acexy: Estado del checkbox de con_acexy (True o False).
     :param file_input: Ruta del archivo donde se guardarán los datos.
     :param acestream_server: Servidor Acestream (cadena).
-    :param acestream_protocol: Protocolo Acestream (http o https).
     :param file_input: Ruta del archivo donde se guardarán los datos.
     """
     data = {
@@ -282,9 +121,7 @@ def save_to_file(textarea1, textarea2, textarea3, checkbox, con_acexy, acestream
         "textarea2": textarea2 if textarea2 is not None else "",
         "textarea3": textarea3 if textarea3 is not None else "",
         "checkbox": checkbox,
-        "con_acexy": con_acexy,
-        "acestream_server": acestream_server if acestream_server else "",
-        "acestream_protocol": acestream_protocol if acestream_protocol else "http"
+        "acestream_server": acestream_server if acestream_server else ""
     }
     
     with open(file_input, "w") as file:
@@ -296,10 +133,10 @@ def save_to_file(textarea1, textarea2, textarea3, checkbox, con_acexy, acestream
 
 def load_from_file(file_input):
     """
-    Carga los datos de los tres textareas, el estado del checkbox, el servidor Acestream y el protocolo desde un archivo JSON.
+    Carga los datos de los tres textareas, el estado del checkbox, el servidor Acestream desde un archivo JSON.
     
     :param file_input: Ruta del archivo desde donde se cargarán los datos.
-    :return: Una tupla con el contenido de textarea1, textarea2, textarea3, el estado del checkbox, con_acexy, el servidor Acestream y el protocolo.
+    :return: Una tupla con el contenido de textarea1, textarea2, textarea3, el estado del checkbox, el servidor Acestream.
     """
 
     if os.path.exists(file_input):
@@ -310,15 +147,13 @@ def load_from_file(file_input):
                 textarea2 = data.get("textarea2", "")
                 textarea3 = data.get("textarea3", "")
                 checkbox = data.get("checkbox", False)
-                con_acexy = data.get("con_acexy", False)
                 acestream_server = data.get("acestream_server", "")
-                acestream_protocol = data.get("acestream_protocol", "http")
-                return textarea1, textarea2, textarea3, checkbox, con_acexy, acestream_server, acestream_protocol
+                return textarea1, textarea2, textarea3, checkbox, acestream_server
             except json.JSONDecodeError:
                 # En caso de error al leer el JSON, devolver valores por defecto
                 return "", "", "", False, False, "", "http"
     # Si el archivo no existe, devolver valores por defecto
-    return "", "", "", False, False, "", "http"
+    return "", "", "", False, ""
 
 
 
@@ -415,14 +250,22 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
     
     return stream_id
 
-@app.route('/stream/start/<path:stream_url>')
-def create_stream(stream_url):
+@app.route('/stream/start/<path:clase>/<path:stream_url>')
+def create_stream(clase, stream_url):
+
+    manager = ScraperManager()
+    
+    # Registrar scrapers para diferentes sitios
+    manager.register_scraper("rojadirecta", RojadirectaScraper)
+    manager.register_scraper("daddylive", DaddyLiveScraper)
+
+    clase_obj = manager.get_scraper_for_url(clase)
     
     """Inicia un nuevo stream y devuelve su ID"""
     try:
 
 
-        result = asyncio.run(scan_streams(stream_url))
+        result = asyncio.run(clase_obj.scan_streams(stream_url))
         if not result or not result[0]:
             print("Canal no disponible")
             return "Canal no disponible", 500
@@ -453,6 +296,7 @@ def create_stream(stream_url):
         }
     except Exception as e:
         print(f"Error al crear stream: {str(e)}")
+        traceback.print_exc() # Esto imprime la traza completa a la consola
         return str(e), 500
 
 
@@ -717,7 +561,6 @@ def index():
     channels = []
     groups = set()
     acestream_server = ""
-    acestream_protocol = "http"
     
     if request.method == 'POST':
         if request.form.get('default_list') == 'true':
@@ -726,23 +569,22 @@ def index():
             direccion_pelis = direccion_pelis_bytes.decode("utf-8")
             direccion_webs = direccion_webs_bytes.decode("utf-8")
             acestream_server = request.form.get('aceStreamServer', '')
-            acestream_protocol = request.form.get('aceStreamProtocol', 'http')
-            save_to_file(direccion, direccion_pelis, direccion_webs, False, False, acestream_server, acestream_protocol, DATA_FILE)    
+            save_to_file(direccion, direccion_pelis, direccion_webs, False,  acestream_server,  DATA_FILE)    
             # Procesar cada línea como una URL
             urls = [direccion]
             urls_pelis = [direccion_pelis]
             urls_webs = [direccion_webs]
             # Usar el servidor Acestream proporcionado o el host por defecto
             host_to_use = acestream_server if acestream_server else request.host
-            generar_m3u_from_url(host_to_use, urls, "directos",FOLDER_RESOURCES, False, acestream_protocol)
-            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", FOLDER_RESOURCES, False, acestream_protocol)
-            generar_m3u_from_url(request.host, urls_webs, "webs",FOLDER_RESOURCES, False, acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls, "directos",FOLDER_RESOURCES)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis", FOLDER_RESOURCES)
+            generar_m3u_from_url(request.host, urls_webs, "webs",FOLDER_RESOURCES)
                         
             textarea_content = direccion
             textarea_content_pelis = direccion_pelis
             textarea_content_webs = direccion_webs
             export_strm = False
-            con_acexy = False
+
         elif request.form.get('submit_url') == 'true':
             # Obtener los datos enviados desde el formulario
             textarea_content = request.form.get('urlInput', '').strip()      
@@ -750,12 +592,9 @@ def index():
             textarea_content_webs = request.form.get('urlInputWebs', '').strip()  
             export_strm = False
             export_strm = 'export_strm' in request.form
-            con_acexy = False
-            con_acexy = 'con_acexy' in request.form
             acestream_server = request.form.get('aceStreamServer', '')
-            acestream_protocol = request.form.get('aceStreamProtocol', 'http')
             # Guardar los datos en el archivo
-            save_to_file(textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, con_acexy, acestream_server, acestream_protocol, DATA_FILE)       
+            save_to_file(textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, acestream_server, DATA_FILE)       
 
             # Procesar cada línea como una URL
             urls = [url.strip() for url in textarea_content.splitlines() if url.strip()]
@@ -763,13 +602,13 @@ def index():
             urls_webs = [url.strip() for url in textarea_content_webs.splitlines() if url.strip()]
 
             host_to_use = acestream_server if acestream_server else request.host
-            generar_m3u_from_url(host_to_use, urls, "directos", FOLDER_RESOURCES, con_acexy, acestream_protocol)
-            generar_m3u_from_url(host_to_use, urls_pelis, "pelis",FOLDER_RESOURCES, con_acexy, acestream_protocol)
-            generar_m3u_from_url(host_to_use, urls_webs, "webs", FOLDER_RESOURCES, con_acexy, acestream_protocol)
+            generar_m3u_from_url(host_to_use, urls, "directos", FOLDER_RESOURCES)
+            generar_m3u_from_url(host_to_use, urls_pelis, "pelis",FOLDER_RESOURCES)
+            generar_m3u_from_url(host_to_use, urls_webs, "webs", FOLDER_RESOURCES)
 
     else:
         # Cargar los datos persistidos desde el archivo
-        textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, con_acexy, acestream_server, acestream_protocol =  load_from_file(DATA_FILE)
+        textarea_content, textarea_content_pelis, textarea_content_webs, export_strm, acestream_server =  load_from_file(DATA_FILE)
 
     if export_strm:
         
@@ -828,7 +667,7 @@ def index():
         groups = {channel.group for channel in channels}
         groups = sorted(list(groups))
     
-    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm, con_acexy=con_acexy, textarea_content_pelis=textarea_content_pelis, textarea_content_webs=textarea_content_webs, acestream_server=acestream_server, acestream_protocol=acestream_protocol)
+    return render_template('index.html', channels=channels, groups=groups, textarea_content=textarea_content, export_strm=export_strm,  textarea_content_pelis=textarea_content_pelis, textarea_content_webs=textarea_content_webs, acestream_server=acestream_server)
 
 def procesar_directos(m3u_directos, directorio_salida):
     """
@@ -992,4 +831,4 @@ if __name__ == '__main__':
     updater_thread.daemon = True
     updater_thread.start()
     
-    app.run(host='0.0.0.0', threaded=True, use_reloader=False)
+    app.run(host='0.0.0.0', debug=True, threaded=True, use_reloader=False)

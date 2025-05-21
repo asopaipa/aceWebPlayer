@@ -11,25 +11,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="container-fluid py-3  shadow-sm">
+        <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
-                <button class="btn btn-outline-secondary me-2 d-md-none" id="sidebar-toggle">
-                    <i class="bi bi-list"></i>
+                <button class="btn btn-outline-primary me-3 d-md-none" id="sidebar-toggle">
+                    <i class="bi bi-list fs-4"></i>
                 </button>
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo" style="height: 40px;">
+                
             </div>
-            <button id="theme-toggle" class="btn btn-outline-secondary">
-                <i class="bi bi-moon" id="theme-icon"></i>
+            <button id="theme-toggle" class="btn btn-primary rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                <i class="bi bi-moon fs-5" id="theme-icon"></i>
             </button>
         </div>
+    </div>
 
         <div class="row">
             <!-- Left column: Channel list -->
             <div class="col-md-4 sidebar" id="channels-sidebar">
 
-                <form method="post" action="{{ url_for('index') }}">
-                    <button type="submit" name="default_list" id="default_list" value="true" class="btn btn-secondary mb-3" style="display: none;">Cargar listas por defecto</button>
+                <form method="post" action="{{ url_for('index') }}" class="d-flex justify-content-center">
+                    <button type="submit" name="default_list" id="default_list" value="true" class="btn btn-outline-secondary mb-3 px-4 py-2 shadow-sm rounded-pill" style="display: none;">
+                        <i class="bi bi-arrow-repeat me-2"></i>Cargar listas por defecto
+                    </button>
                 </form>
                 <input type="text" id="searchInput" class="form-control mb-3" placeholder="Buscar canal o evento...">
                 <div class="channels-container">
@@ -71,9 +75,11 @@
                         {% endfor %}
                     </div>
                     
-                    <br>
-                    Directos:
+                    <br>                    
                     <form id="upload-form" method="POST">
+                        <p class="text-primary fw-bold d-flex align-items-center">
+                            <i class="bi bi-broadcast me-2 text-success"></i> Directos:
+                        </p>
                         <div class="mb-3">
                         
                             <div class="input-group">
@@ -82,20 +88,22 @@
                             </div>
                         
                         </div>
-                        Películas:
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-film text-danger me-2 fs-4"></i>
+                            <span class="text-danger fw-bold me-2">Películas:</span>
+                        </div>
                          <div class="mb-3">
                        
-                            <div class="input-group">
-                                
+                            <div class="input-group">        
                                 <textarea type="text" id="urlInputPelis" name="urlInputPelis" class="form-control" placeholder="Escribe las URL's de tus fuentes m3u">{{ textarea_content_pelis }}</textarea>
                             </div>
                      
-                        </div>
-                        Web's IPTV:
-                         <div class="mb-3">
-                       
-                            <div class="input-group">
-                                
+                        </div>                        
+                        <p class="text-info fw-bold d-flex align-items-center">
+                            <i class="bi bi-globe me-2"></i> Web's IPTV:
+                        </p>
+                         <div class="mb-3">                       
+                            <div class="input-group">                                
                                 <textarea type="text" id="urlInputWebs" name="urlInputWebs" class="form-control" placeholder="Escribe las URL's de tus webs favoritas">{{ textarea_content_webs }}</textarea>
                             </div>
                      
@@ -103,35 +111,58 @@
 
                         <!-- Configuración del servidor Acestream -->
                         <div class="mb-3">
-                            <label for="aceStreamServer" class="form-label">Servidor Acestream:</label>
-                            <div class="input-group">
-                                <select id="aceStreamProtocol" name="aceStreamProtocol" class="selec">
-                                    <option value="http" {% if acestream_protocol == 'http' %}selected{% endif %}>http://</option>
-                                    <option value="https" {% if acestream_protocol == 'https' %}selected{% endif %}>https://</option>
-                                </select>
-                                <input type="text" id="aceStreamServer" name="aceStreamServer" class="form-control" 
-                                    placeholder="dirección:puerto" value="{{ acestream_server }}">
-                                <button type="button" id="saveSettings" class="btn btn-outline-primary">Guardar</button>
+                            <label for="aceStreamServer" class="form-label fw-bold text-primary">Servidor Acestream:</label>
+                            <div class="input-group shadow-sm">
+                                <input type="text" id="aceStreamServer" name="aceStreamServer" class="form-control border-primary" 
+                                    placeholder="dirección:puerto" value="{{ acestream_server }}" title="Ejemplo acestream: http://MI_HOST:6878/ace/manifest.m3u8?id=[acestream_id]&pid=[pid]    Ejemplo acexy: http://MI_HOST:6878/ace/getstream?id=[acestream_id]">
+                                <button type="button" id="saveSettings" class="btn btn-primary">
+                                    <i class="bi bi-save me-2"></i>
+                                </button>
                             </div>
                         </div>
-                        <input class="btn btn-primary" type="checkbox"  title="Activa esta opción si en lugar de usar el Engine de Acestream usas Acexy" name="con_acexy" id="con_acexy" value="1" {{ 'checked' if con_acexy else '' }} >Usas Acexy?<br/>
-                        <input class="btn btn-primary" type="checkbox" name="export_strm" title="Activa esta opción si deseas exportar los ficheros strm (para kodi) en http://IP:PUERTO/output_strm/" Acexy value="1" {{ 'checked' if export_strm else '' }} >Exportar strm's
-                        <br/><button class="btn btn-primary" type="submit" name="submit_url" value="true">Guardar y actualizar canales</button>
+                        <label class="form-check-label d-flex align-items-center mb-3">
+                            <input class="form-check-input me-2" type="checkbox" name="export_strm" title="Activa esta opción si deseas exportar los ficheros strm (para kodi) en http://IP:PUERTO/output_strm/" value="1" {{ 'checked' if export_strm else '' }}>
+                            Exportar strm's
+                        </label>
+                        <button class="btn btn-primary w-100" type="submit" name="submit_url" value="true">Guardar y actualizar canales</button>
                     </form>
                     <br>
-                    <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Acestream</button>
-                    <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Directos Remoto (VLC)</button>
-                    <button type="button" id="descargar_m3u_ace_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Acestream</button>
-                    <button type="button" id="descargar_m3u_remote_pelis" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U Películas Remoto (VLC)</button>
-                    <button type="button" id="descargar_m3u_iptv" value="true" class="btn btn-secondary w-100 mb-3" style="display: none;">Descargar M3U IPTV con Headers para Kodi. Exportación lenta</button>
+                    <div class="container">
+                        <div class="row row-cols-2 g-3">
+                            <div class="col">
+                                <button type="button" id="descargar_m3u_ace" value="true" class="btn btn-outline-primary btn-lg w-100 shadow-sm" style="display: none;">
+                                    <i class="bi bi-download me-2"></i>M3U Directos Acestream
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="descargar_m3u_remote" value="true" class="btn btn-outline-success btn-lg w-100 shadow-sm" style="display: none;">
+                                    <i class="bi bi-cloud-download me-2"></i>M3U Directos Remoto
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="descargar_m3u_ace_pelis" value="true" class="btn btn-outline-danger btn-lg w-100 shadow-sm" style="display: none;">
+                                    <i class="bi bi-film me-2"></i>M3U Películas Acestream
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="descargar_m3u_remote_pelis" value="true" class="btn btn-outline-warning btn-lg w-100 shadow-sm" style="display: none;">
+                                    <i class="bi bi-cloud-download-fill me-2"></i>M3U Películas Remoto
+                                </button>
+                            </div>
+                            <div class="col">
+                                <button type="button" id="descargar_m3u_iptv" value="true" class="btn btn-outline-info btn-lg w-100 shadow-sm" style="display: none;">
+                                    <i class="bi bi-tv me-2"></i>M3U IPTV con Headers para Kodi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     
                     <br>
-                    <div class="mb-3">
-                        <div class="input-group">
-                            <input type="text" id="testInput" class="form-control" placeholder="Escribe la ID del canal">
-                            <button id="testButton" class="btn btn-secondary">Stream</button>
-                        </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <label for="testInput" class="form-label fw-bold text-primary me-2 mb-0">Stream:</label>
+                        <input type="text" id="testInput" class="form-control shadow-sm rounded-pill me-2" placeholder="Escribe la ID del canal" style="flex: 1;">
+                        <button id="testButton" class="btn btn-primary shadow-sm rounded-pill">Stream</button>
                     </div>
 
                     
@@ -140,14 +171,15 @@
 
             <!-- Right column: Player -->
             <div class="col-md-8">
-                <div class="player-container">
-                    <div id="player">
-                        <div id="initial-message" class="text-center">
-                            <h4 class="text-muted dark-text-muted">Selecciona un canal para comenzar la reproducción</h4>
+                <div class="player-container d-flex flex-column align-items-center justify-content-center  shadow-sm rounded p-4">
+                    <div id="player" class="w-100">
+                        <div id="initial-message" class="text-center py-5">
+                            <h5>Selecciona un canal para comenzar la reproducción</h4>
+                            
                         </div>
-                        <div id="video-div" style="display: none;">
-                            <video id="video" controls autoplay style="display: none;"></video>
-                            <div id="info_enlaces" style="margin:20px"></div>
+                        <div id="video-div" class="position-relative" style="display: none;">
+                            <video id="video" controls autoplay class="w-100 rounded shadow-sm" style="display: none;"></video>
+                            <div id="info_enlaces" class="mt-3 p-3 bg-light rounded shadow-sm"></div>
                         </div>
                     </div>
                 </div>
@@ -163,11 +195,11 @@
         <!-- Ventana emergente -->
         <div id="overlay" onclick="togglePopup()"></div>
         <div id="popup-window">
-            <div id="popup-header">
+            <!--<div id="popup-header">
                 <i class="bi bi-calendar-event me-2"></i>
                 Agenda Deportiva
                 <button id="close-popup" onclick="togglePopup()">×</button>
-            </div>
+            </div>-->
             <iframe id="agenda-iframe" src="https://widgets.futbolenlatv.com/partidos/agenda?color=000&culture=es-ES" sandbox="allow-scripts" scrolling="auto"></iframe>
         </div>
 

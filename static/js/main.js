@@ -7,6 +7,15 @@ function loadChannel(contentId) {
         loadChannelPost(contentId);
     else
     {
+
+                
+        let clase;
+        let url;
+
+        const indicePrimeraBarra = contentId.indexOf('/');
+
+        clase = contentId.substring(0, indicePrimeraBarra);
+        url = contentId.substring(indicePrimeraBarra + 1);
         const video = document.getElementById('video');
         const videoDiv = document.getElementById('video-div');
         
@@ -17,20 +26,20 @@ function loadChannel(contentId) {
         videoDiv.style.display = 'block';
         
         // Información de depuración
-        console.log("Intentando cargar stream desde: /stream/start/" + encodeURIComponent(contentId));
+        console.log("Intentando cargar stream desde: /stream/start/" + clase + "/" +encodeURIComponent(url));
     
         // Selección de los botones
         const infoEnlaces = document.getElementById('info_enlaces');
     
         infoEnlaces.innerHTML = `
             <div class="alert alert-info">
-                <p><strong>Enlace remoto:</strong> <a href="/stream/start/${encodeURIComponent(contentId)}" target="_blank">/stream/start/${encodeURIComponent(contentId)}</a></p>
+                <p><strong>Enlace remoto:</strong> <a href="/stream/start/${clase}/${encodeURIComponent(url)}" target="_blank">/stream/start/${clase}/${encodeURIComponent(url)}</a></p>
                 <div id="stream-status">Conectando al stream...</div>
             </div>`;
         
         const streamStatus = document.getElementById('stream-status');
         // Llamar al endpoint para crear el stream
-        fetch("/stream/start/" + encodeURIComponent(contentId))
+        fetch("/stream/start/" + clase + "/" + encodeURIComponent(url))
             .then(response => {
                 if (!response.ok) {
                     throw new Error("Error al crear el stream");
@@ -57,21 +66,22 @@ function loadChannelPost(contentId) {
     const initialMessage = document.getElementById('initial-message');
     
     // Usar la dirección del servidor Acestream configurada o el host actual por defecto
-    const aceStreamServer = localStorage.getItem('aceStreamServer') || `${window.location.hostname}:6878`;
-    // Determinar el protocolo a usar
-    const aceStreamProtocol = localStorage.getItem('aceStreamProtocol') || 'http';
+    const aceStreamServer = localStorage.getItem('aceStreamServer') || `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=[acestream_id]&pid=[pid]`;
+
     videoSrc = "";
     if(contentId.length==40)
     {
-        con_acexy = document.getElementById('con_acexy');
-        pid_txt="";
-        if (!con_acexy.checked) 
-        {
-            pid_txt="&pid="+PidId;
-            videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/manifest.m3u8?id=${contentId}${pid_txt}`;
+
+        servidor=`${aceStreamServer}`;
+        if (servidor.includes("[pid]")) {
+            videoSrc=servidor.replaceAll("[pid]", PidId);
+
         }
-        else
-            videoSrc = `${aceStreamProtocol}://${aceStreamServer}/ace/getstream?id=${contentId}`;
+        if (servidor.includes("[acestream_id]")) {
+            videoSrc=videoSrc.replaceAll("[acestream_id]", contentId);
+
+        }
+
 
         // Mostrar mensaje de carga
         initialMessage.style.display = 'none';
@@ -271,29 +281,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const savedServer = localStorage.getItem('aceStreamServer');
         if (savedServer) {
             aceStreamServerInput.value = savedServer;
+            if (!savedServer.includes("[acestream_id]")) {
+                alert("Ha habido un cambio de formato en el campo \"Servidor Acestream\" en la última versión de este programa.\nRevisa este campo, no contiene [acestream_id].\nValores de ejemplo: http://MI_HOST:6878/ace/manifest.m3u8?id=[acestream_id]&pid=[pid]\nCon acexy: http://MI_HOST:6878/ace/getstream?id=[acestream_id]");
+
+            }
         } else {
             // Valor por defecto: hostname actual con puerto 6878
-            aceStreamServerInput.value = `${window.location.hostname}:6878`;
+            aceStreamServerInput.value = `http://${window.location.hostname}:6878/ace/manifest.m3u8?id=[acestream_id]&pid=[pid]`;
+
         }
     }
     
-    // Actualizar el selector de protocolo con el valor guardado
-    const aceStreamProtocolSelect = document.getElementById('aceStreamProtocol');
-    if (aceStreamProtocolSelect) {
-        const savedProtocol = localStorage.getItem('aceStreamProtocol');
-        if (savedProtocol) {
-            aceStreamProtocolSelect.value = savedProtocol;
-        }
-    }
+
 
     // Manejador para guardar la configuración del servidor Acestream
     const saveSettingsBtn = document.getElementById('saveSettings');
     if (saveSettingsBtn) {
         saveSettingsBtn.addEventListener('click', function() {
             const aceStreamServer = document.getElementById('aceStreamServer').value.trim();
-            const aceStreamProtocol = document.getElementById('aceStreamProtocol').value;
             localStorage.setItem('aceStreamServer', aceStreamServer);
-            localStorage.setItem('aceStreamProtocol', aceStreamProtocol);
             alert('Configuración guardada correctamente');
         });
     }
