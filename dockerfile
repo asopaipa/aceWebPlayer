@@ -1,7 +1,7 @@
 FROM mcr.microsoft.com/playwright/python:v1.52.0-noble
 
 
-RUN apt-get update && apt-get -y install ffmpeg
+RUN apt-get update && apt-get -y install ffmpeg python3-brotli yt-dlp
 
 # Set working directory
 WORKDIR /app

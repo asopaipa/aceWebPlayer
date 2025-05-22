@@ -205,11 +205,33 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
     playlist_path = os.path.join(stream_dir, 'playlist.m3u8')
     segment_path = os.path.join(stream_dir, 'segment_%03d.ts')
     
+
+    '''
     # Comando FFmpeg optimizado para streaming
     cmd = [
         'ffmpeg',
         '-i', stream_url,               # URL de entrada
-        '-headers', stream_headers,
+    ]
+
+
+
+    # Añadir headers condicionalmente
+    if stream_headers:
+        headers_to_add = []
+        if isinstance(stream_headers, str):
+            # Si es un string, dividirlo por \r\n para obtener headers individuales
+            # Eliminar espacios en blanco alrededor de cada header y filtrar vacíos
+            headers_to_add = [h.strip() for h in stream_headers.split('\r\n') if h.strip()]
+        elif isinstance(stream_headers, list):
+            headers_to_add = [h.strip() for h in stream_headers if h.strip()] # También limpiar y filtrar
+        else:
+            print(f"Advertencia: stream_headers tiene un tipo inesperado: {type(stream_headers)}. No se agregarán headers.")
+
+        # Añadir cada header individual con su propia opción -headers
+        for header_item in headers_to_add:
+            cmd.extend(['-headers', header_item])
+
+    cmd.extend([
         '-c', 'copy',                   # Copiar sin transcodificar
         '-f', 'hls',                    # Formato de salida HLS
         '-hls_time', '2',               # Duración de cada segmento
@@ -217,7 +239,43 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
         '-hls_flags', 'delete_segments',# Eliminar segmentos antiguos
         '-hls_segment_filename', segment_path,  # Patrón de nombre de segmentos
         playlist_path                   # Archivo de playlist
+    ])
+    '''
+
+    cmd = [
+        'yt-dlp',
+        '--verbose',
+
+        '--downloader', 'ffmpeg',
+        '--downloader-args', 'ffmpeg_i:-nostats -hide_banner -loglevel debug -fflags +genpts -threads 2 -f live_flv',
+        '--downloader-args', f'ffmpeg_o:-c copy -f hls -hls_time 2 -hls_list_size 10 -hls_flags delete_segments -hls_segment_filename {segment_path}',
+        '-o', playlist_path,
     ]
+
+
+        # Añadir headers condicionalmente
+    if stream_headers:
+        headers_to_add = []
+        if isinstance(stream_headers, str):
+            # Si es un string, dividirlo por \r\n para obtener headers individuales
+            # Eliminar espacios en blanco alrededor de cada header y filtrar vacíos
+            headers_to_add = [h.strip() for h in stream_headers.split('\r\n') if h.strip()]
+        elif isinstance(stream_headers, list):
+            headers_to_add = [h.strip() for h in stream_headers if h.strip()] # También limpiar y filtrar
+        else:
+            print(f"Advertencia: stream_headers tiene un tipo inesperado: {type(stream_headers)}. No se agregarán headers.")
+
+        # Añadir cada header individual con su propia opción -headers
+        for header_item in headers_to_add:
+            cmd.extend(['--add-header', header_item])
+
+
+    cmd.extend([
+        '--add-header', 'Accept-Encoding: gzip, deflate, br, zstd',
+        stream_url
+    ])
+
+    print(f"Comando FFmpeg: {' '.join(cmd)}")
     
     # Iniciar proceso en modo no bloqueante
     process = subprocess.Popen(

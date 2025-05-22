@@ -672,7 +672,7 @@ class DaddyLiveScraper(BaseScraper):
             
             headers_for_key = {
                 'User-Agent': self.DEFAULT_USER_AGENT,
-                'Referer': final_m3u8_url, 
+                'Referer': f"{origin_for_key}/", 
                 'Origin': origin_for_key
             }
             
@@ -683,14 +683,14 @@ class DaddyLiveScraper(BaseScraper):
             #}
 
             found_streams.append({
-                "url": key_uri_absolute,
+                "url": final_m3u8_url,
                 "headers": dict(headers_for_key),
                 "source": "cabernet"
             })
 
      
             print(f"  [+] Clave M3U8 encontrada: URI='{key_uri_absolute}'")
-            print(f"      Headers para la clave: Origin='{origin_for_key}', Referer='{final_m3u8_url}'")
+            print(f"      Headers para la clave: Origin='{final_m3u8_url}', Referer='{final_m3u8_url}'")
         else:
             found_streams.append({
                 "url": final_m3u8_url,
