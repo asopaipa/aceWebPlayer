@@ -1,4 +1,6 @@
+import base64
 import traceback
+import cloudscraper25
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, Response, abort, send_file, jsonify, render_template_string, stream_with_context
 from getLinks import generar_m3u_from_url, decode_default_url
 import re
@@ -157,6 +159,64 @@ def load_from_file(file_input):
 
 
 
+def patch_m3u8(text, stream_id):
+
+    key_hex = active_streams[stream_id]['key_hex']
+
+
+    # 3. Convertir la clave hexadecimal a bytes
+    try:
+        clave_bytes = bytes.fromhex(key_hex)
+    except ValueError as e:
+        print(f"Error: La clave hexadecimal proporcionada no es válida o no tiene la longitud correcta. {e}")
+        exit()
+
+    # 4. Codificar los bytes de la clave en Base64
+    clave_base64_bytes = base64.b64encode(clave_bytes)
+    clave_base64_str = clave_base64_bytes.decode('ascii') # Convertir los bytes Base64 a una cadena de texto
+
+    # 5. Construir el nuevo valor para el atributo URI usando data: URI
+    # El formato es: data:[<mediatype>][;base64],<data>
+    # Para una clave AES cruda, 'application/octet-stream' es un mediatype adecuado.
+    nuevo_uri_valor_incrustado = f"data:application/octet-stream;base64,{clave_base64_str}"
+
+    # 6. Usar una expresión regular para reemplazar solo el valor del atributo URI
+    # El patrón busca URI="<cualquier cosa entre comillas>"
+    # r'URI="[^"]*"' significa:
+    #   URI="       : Coincide con el literal URI="
+    #   [^"]*      : Coincide con cualquier carácter que NO sea una comilla doble ("), cero o más veces.
+    #   "          : Coincide con la comilla doble de cierre.
+    patron_uri_existente = r'URI="[^"]*"'
+
+    # La cadena de reemplazo será el nuevo atributo URI completo
+    reemplazo_atributo_uri_completo = f'URI="{nuevo_uri_valor_incrustado}"'
+
+
+    lineas_modificadas = []
+    for linea in text.splitlines():
+        if linea.startswith("#EXT-X-KEY:"):
+            # Es una línea de clave, intentamos reemplazar el URI
+            linea_con_uri_modificado = re.sub(patron_uri_existente, reemplazo_atributo_uri_completo, linea)
+            lineas_modificadas.append(linea_con_uri_modificado)
+        else:
+            # No es una línea de clave, la dejamos como está
+            lineas_modificadas.append(linea)
+
+    return "\n".join(lineas_modificadas)
+
+
+    
+@app.route('/localproxy/<path:stream_id>')
+def proxy(stream_id):
+
+    #r = requests.get(active_streams[stream_id]['stream_url'], stream=True)
+    #r.raise_for_status()
+    scraper = cloudscraper25.create_scraper()
+    
+    r = scraper.get(active_streams[stream_id]['stream_url'])
+    patched = patch_m3u8(r.text, stream_id)
+    return Response(patched, mimetype='application/vnd.apple.mpegurl')
+
 
 
 
@@ -205,11 +265,54 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
     playlist_path = os.path.join(stream_dir, 'playlist.m3u8')
     segment_path = os.path.join(stream_dir, 'segment_%03d.ts')
     
+
+
     # Comando FFmpeg optimizado para streaming
     cmd = [
         'ffmpeg',
-        '-i', stream_url,               # URL de entrada
-        '-headers', stream_headers,
+        '-extension_picky', '0',
+        '-allowed_extensions', 'ALL',
+        '-allowed_segment_extensions', 'ALL',
+        
+    ]
+
+    stream_url2=stream_url
+
+    # Guardar información del proceso
+    active_streams[stream_id] = {
+        'stream_url': stream_url,
+        'stream_dir': stream_dir
+    }
+
+
+    # Añadir headers condicionalmente
+    if stream_headers:
+        headers_to_add = []
+        if isinstance(stream_headers, str):
+            # Si es un string, dividirlo por \r\n para obtener headers individuales
+            # Eliminar espacios en blanco alrededor de cada header y filtrar vacíos
+            headers_to_add = [h.strip() for h in stream_headers.split('\r\n') if h.strip()]
+        elif isinstance(stream_headers, list):
+            headers_to_add = [h.strip() for h in stream_headers if h.strip()] # También limpiar y filtrar
+        else:
+            print(f"Advertencia: stream_headers tiene un tipo inesperado: {type(stream_headers)}. No se agregarán headers.")
+
+        # Añadir cada header individual con su propia opción -headers
+        for header_item in headers_to_add:
+            if header_item.startswith('key_hex:'):
+                cmd.extend(['-decryption_key', header_item.rpartition(':')[2][3:-2]],)
+                active_streams[stream_id]['key_hex'] = header_item.rpartition(':')[2][3:-2]
+
+                print(f"[*] Clave usada (hex) entre puntos: .{header_item.rpartition(':')[2][3:-2]}.")
+
+                stream_url2=f'http://127.0.0.1:5000/localproxy/{stream_id}'
+            else:
+                cmd.extend(['-headers', header_item])
+
+
+    cmd.extend([
+        
+        '-i', stream_url2,  # URL de entrada
         '-c', 'copy',                   # Copiar sin transcodificar
         '-f', 'hls',                    # Formato de salida HLS
         '-hls_time', '2',               # Duración de cada segmento
@@ -217,7 +320,47 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
         '-hls_flags', 'delete_segments',# Eliminar segmentos antiguos
         '-hls_segment_filename', segment_path,  # Patrón de nombre de segmentos
         playlist_path                   # Archivo de playlist
+    ])
+    
+
+    '''
+    
+    cmd = [
+        'yt-dlp',
+        '--verbose',
+        '--downloader-arg', 'ffmpeg_i1:-extension_picky 0',
+        '--downloader-arg', 'ffmpeg_i2:-extension_picky 0', 
+        '--downloader', 'ffmpeg',
+        '--downloader-args', 'ffmpeg_i:-nostats -hide_banner -loglevel debug -fflags +genpts -threads 2 ',
+        '--downloader-args', f'ffmpeg_o:-c copy -f hls -hls_time 2 -hls_list_size 10 -hls_flags delete_segments -hls_segment_filename {segment_path}',
+        '-o', playlist_path,
     ]
+
+
+        # Añadir headers condicionalmente
+    if stream_headers:
+        headers_to_add = []
+        if isinstance(stream_headers, str):
+            # Si es un string, dividirlo por \r\n para obtener headers individuales
+            # Eliminar espacios en blanco alrededor de cada header y filtrar vacíos
+            headers_to_add = [h.strip() for h in stream_headers.split('\r\n') if h.strip()]
+        elif isinstance(stream_headers, list):
+            headers_to_add = [h.strip() for h in stream_headers if h.strip()] # También limpiar y filtrar
+        else:
+            print(f"Advertencia: stream_headers tiene un tipo inesperado: {type(stream_headers)}. No se agregarán headers.")
+
+        # Añadir cada header individual con su propia opción -headers
+        for header_item in headers_to_add:
+            cmd.extend(['--add-header', header_item])
+
+
+    cmd.extend([
+        '--add-header', 'Accept-Encoding: gzip, deflate, br, zstd',
+        stream_url
+    ])
+    '''
+
+    print(f"Comando FFmpeg: {' '.join(cmd)}")
     
     # Iniciar proceso en modo no bloqueante
     process = subprocess.Popen(
@@ -227,13 +370,10 @@ def start_ffmpeg_process(stream_url, stream_id, stream_headers):
         bufsize=10**8
     )
     
-    # Guardar información del proceso
-    active_streams[stream_id] = {
-        'process': process,
-        'stream_url': stream_url,
-        'last_access': time.time(),
-        'stream_dir': stream_dir
-    }
+    active_streams[stream_id]['process'] = process
+    active_streams[stream_id]['last_access'] = time.time()
+
+
     
     # Monitorear errores en un hilo separado
     def monitor_errors():
