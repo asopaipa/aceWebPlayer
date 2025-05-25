@@ -14,6 +14,7 @@ import json
 import binascii
 import string # Para replicar self.def_trans
 import urllib.parse
+import subprocess
 
 
 # Configuración de logging
@@ -669,28 +670,91 @@ class DaddyLiveScraper(BaseScraper):
             
             parsed_ch_url = urllib.parse.urlparse(ch_url)
             origin_for_key = f"{parsed_ch_url.scheme}://{parsed_ch_url.netloc}"
+
             
+            
+            #command_list = [
+            #    "curl",
+            #    key_uri_absolute,
+            #    "-H", f"User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0",
+            #    "-H", "Accept: */*",
+            #    "-H", "Accept-Language: en-US,en;q=0.5",
+            #    "-H", "Accept-Encoding: gzip, deflate, br, zstd", # curl maneja esto
+            #    "-H", f"Origin: {origin_for_key}",
+            #    "-H", "DNT: 1",
+            #    "-H", "Connection: keep-alive", # curl maneja esto
+            #    "-H", f"Referer: {origin_for_key}/",
+            #    "-H", "Sec-Fetch-Dest: empty",
+            #    "-H", "Sec-Fetch-Mode: cors",
+            #    "-H", "Sec-Fetch-Site: cross-site",
+            #    "-H", "Pragma: no-cache",
+            #    "-H", "Cache-Control: no-cache",
+                # Puedes añadir otras opciones de curl si las necesitas, por ejemplo:
+                # "-s",  # Modo silencioso (no muestra barra de progreso)
+                # "-L",  # Seguir redirecciones
+            #]
+           
+           
+
+            #print(f"[*] Ejecutando comando: {' '.join(command_list)}") # Para visualización
+
+            #key=""
+            try:
+
+            #    process = subprocess.run(
+            #        command_list,
+            #        capture_output=True,
+            #        check=True,  # Lanza CalledProcessError si el código de retorno no es 0
+            #        text=False   # Obtiene stdout y stderr como bytes
+            #    )
+
+                # La salida estándar (el contenido de la clave) estará en process.stdout
+            #    key_content_bytes = process.stdout
+
+                headers_for_key = { 'User-Agent': 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0', 'Accept': '*/*', 'Accept-Language': 'en-US,en;q=0.5', 'Accept-Encoding': 'gzip, deflate, br, zstd', 'Origin': 'https://alldownplay.xyz', 'DNT': '1', 'Connection': 'keep-alive', 'Referer': 'https://alldownplay.xyz/', 'Sec-Fetch-Dest': 'empty', 'Sec-Fetch-Mode': 'cors', 'Sec-Fetch-Site': 'cross-site', 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+                scraper = cloudscraper25.create_scraper()
+                response_m3u8=scraper.get("https://key.keylocking.ru/wmsxx.php?test=true&name=premium326&number=1", headers=headers_for_key)
+                key_content_bytes = response_m3u8.content
+                    
+                print(f"[+] Comando curl ejecutado exitosamente!")
+                print(f"[*] Clave obtenida (bytes): {key_content_bytes}")
+                print(f"[*] Clave obtenida (hex): {key_content_bytes.hex()}")
+                key={key_content_bytes.hex()}
+                
+
+            except subprocess.CalledProcessError as e:
+                print(f"[-] Error al ejecutar curl. El comando devolvió un código de error: {e.returncode}")
+                print(f"    Comando: {' '.join(e.cmd)}")
+                if e.stdout:
+                    print(f"    Salida estándar (stdout) del error (bytes): {e.stdout}")
+                    # Intenta decodificar si crees que es texto útil
+                    # print(f"    Salida estándar (stdout) del error (texto): {e.stdout.decode(errors='ignore')}")
+                if e.stderr:
+                    print(f"    Salida de error (stderr) del error (bytes): {e.stderr}")
+                    print(f"    Salida de error (stderr) del error (texto): {e.stderr.decode(errors='ignore')}")
+            except FileNotFoundError:
+                print("[-] Error: El comando 'curl' no se encontró. Asegúrate de que esté instalado y en el PATH del sistema.")
+            except Exception as e:
+                print(f"[-] Ocurrió un error inesperado al ejecutar subprocess: {e}")
+
+
+
             headers_for_key = {
                 'User-Agent': self.DEFAULT_USER_AGENT,
                 'Referer': final_m3u8_url, 
-                'Origin': origin_for_key
+                'Origin': origin_for_key,
+                'key_hex': key
             }
-            
-            #result_data['key_data'] = {
-            #    'url': key_uri_absolute,
-            #    'headers': dict(headers_for_key),
-            #    'source': 'cabernet'
-            #}
 
             found_streams.append({
-                "url": key_uri_absolute,
+                "url": final_m3u8_url,
                 "headers": dict(headers_for_key),
                 "source": "cabernet"
             })
 
      
             print(f"  [+] Clave M3U8 encontrada: URI='{key_uri_absolute}'")
-            print(f"      Headers para la clave: Origin='{origin_for_key}', Referer='{final_m3u8_url}'")
+            print(f"      Headers para la clave: Origin='{final_m3u8_url}', Referer='{final_m3u8_url}'")
         else:
             found_streams.append({
                 "url": final_m3u8_url,
