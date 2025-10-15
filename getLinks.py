@@ -136,7 +136,7 @@ def generar_m3u_from_url(miHost, urls, tipo, folder):
                    
                     if response.status_code == 200:
                         content = response.text
-                        matches = re.findall(r'{"name": "(.*?)", "url": "acestream://([a-f0-9]{40})"}', content)
+                        matches = re.findall(r'{\s*"name": "(.*?)", "url": "acestream://([a-f0-9]{40})"\s*}', content)
                         for canal, acestream_url in matches:
                             if acestream_url not in enlaces_unicos:
                                 enlaces_unicos.add(acestream_url)
