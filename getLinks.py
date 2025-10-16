@@ -6,7 +6,15 @@ import random
 import requests
 import csv
 from bs4 import BeautifulSoup
+import logging
 import asyncio
+
+# Configuración de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('getLinks')
 
 def normalizar(texto):
     
@@ -74,6 +82,7 @@ def generar_m3u_from_url(miHost, urls, tipo, folder):
                 # Descargar el contenido y procesarlo como archivo M3U
                 response = requests.get(url, timeout=500)
                 html = response.text
+                logger.info(f"Contenido: {html[:500]}")
                 # Analizamos el HTML en busca de una página de seguridad del zeronet
                 soup = BeautifulSoup(html, 'html.parser')
                 form = soup.find("form", action="/add/")
@@ -126,11 +135,27 @@ def generar_m3u_from_url(miHost, urls, tipo, folder):
                                 grupo_actual = group_match.group(1) if group_match else None
                                 tvg_id_actual = tvg_id_match.group(1) if tvg_id_match else None
                                 logo_actual = logo_match.group(1) if logo_match else None
-                            elif line.startswith("http") or line.startswith("acestream:"):  # Enlace de streaming
+                            elif line.startswith("http"):
+                                logger.info(f"Analizando enlace: {line}")
                                 if line not in enlaces_unicos:
                                     enlaces_unicos.add(line)
                                     escribir_m3u(f, f1, line, diccionario, miHost, canal_actual, tipo, 
                                                  grupo_actual, tvg_id_actual, logo_actual)
+                                else:
+                                    logger.info(f"El enlace no es único, lo descartamos")
+                                    
+                            elif line.startswith("acestream:"): 
+                                matches = re.findall(r'acestream://([a-f0-9]{40})', line)
+                                for acestream_url in matches:
+                                    logger.info(f"Analizando enlace: {line}")
+                                    if acestream_url not in enlaces_unicos:
+                                        logger.info(f"Es único, lo mostraramos")
+                                        enlaces_unicos.add(acestream_url)
+                                        escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal_actual, tipo, 
+                                                 grupo_actual, tvg_id_actual, logo_actual)
+                             
+                                    else:
+                                        logger.info(f"El enlace no es único, lo descartamos")
                         
                 else:
                    
@@ -138,14 +163,18 @@ def generar_m3u_from_url(miHost, urls, tipo, folder):
                         content = response.text
                         matches = re.findall(r'{\s*"name": "(.*?)", "url": "acestream://([a-f0-9]{40})"\s*}', content)
                         for canal, acestream_url in matches:
+                            logger.info(f"Analizando enlace: {acestream_url}")
                             if acestream_url not in enlaces_unicos:
+                                logger.info(f"Es único, lo mostraramos")
                                 enlaces_unicos.add(acestream_url)
                                 escribir_m3u(f, f1, f"acestream://{acestream_url}", diccionario, miHost, canal, tipo, 
                                            None, None, None)
+                            else:
+                                logger.info(f"El enlace no es único, lo descartamos")
             except Exception as e:
-                print(f"Error procesando URL {url}: {e}")
+                logger.error(f"Error procesando URL {url}: {e}")
 
-    print(f"Archivos generados: {output_file}, {output_file_remote}")
+    logger.info(f"Archivos generados: {output_file}, {output_file_remote}")
 
 
 def escribir_m3u(f, f1, url, diccionario, miHost, canal, tipo, 
